@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Casa de Noah · Disponibilidad</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="marca">
+      <h1>Casa de Noah</h1>
+      <span id="actualizado" class="suave"></span>
+    </div>
+    <nav id="tabs">
+      <button data-tab="calendario" class="on">Calendario</button>
+      <button data-tab="buscar">Buscar libre</button>
+      <button data-tab="directas">Reservas directas</button>
+      <button data-tab="config">Habitaciones y enlaces</button>
+    </nav>
+    <button id="btnActualizar" class="primario">Actualizar ahora</button>
+  </header>
+
+  <div id="demoBanner" class="banner" hidden>
+    Estás viendo datos de ejemplo. No se guardan. <button id="btnSalirDemo">Salir del ejemplo</button>
+  </div>
+
+  <main>
+    <section id="resumen" class="tarjetas"></section>
+    <section id="alertas"></section>
+
+    <section id="tab-calendario" class="tab">
+      <div class="barra">
+        <button id="prev" title="Semana anterior">←</button>
+        <button id="hoy">Hoy</button>
+        <button id="next" title="Semana siguiente">→</button>
+        <label>Mostrar
+          <select id="dias">
+            <option value="14">2 semanas</option>
+            <option value="21" selected>3 semanas</option>
+            <option value="31">1 mes</option>
+          </select>
+        </label>
+        <div class="leyenda" id="leyenda"></div>
+      </div>
+      <div class="grilla-wrap"><table id="grilla"></table></div>
+      <p class="suave">Toca un día libre para anotar una reserva directa. Toca un día ocupado para ver el detalle.</p>
+    </section>
+
+    <section id="tab-buscar" class="tab" hidden>
+      <h2>¿Qué habitaciones están libres?</h2>
+      <form id="formBuscar" class="fila">
+        <label>Llegada <input type="date" id="bLlegada" required></label>
+        <label>Salida <input type="date" id="bSalida" required></label>
+        <button class="primario">Buscar</button>
+      </form>
+      <div id="resultadoBuscar"></div>
+    </section>
+
+    <section id="tab-directas" class="tab" hidden>
+      <h2>Reservas directas (teléfono, WhatsApp, en persona)</h2>
+      <form id="formDirecta" class="fila">
+        <label>Habitación <select id="dHab" required></select></label>
+        <label>Llegada <input type="date" id="dLlegada" required></label>
+        <label>Salida <input type="date" id="dSalida" required></label>
+        <label>Nombre o nota <input type="text" id="dNombre" maxlength="60" placeholder="Opcional"></label>
+        <button class="primario">Anotar</button>
+      </form>
+      <p id="dAviso" class="aviso" hidden></p>
+      <p class="suave">Ojo: estas reservas se ven aquí, pero no bloquean las fechas en Airbnb, Booking ni Expedia. Ciérralas también allá.</p>
+      <div id="listaDirectas"></div>
+    </section>
+
+    <section id="tab-config" class="tab" hidden>
+      <h2>Habitaciones y enlaces de calendario</h2>
+      <details class="ayuda">
+        <summary>¿Dónde encuentro cada enlace?</summary>
+        <ul>
+          <li><b>Airbnb:</b> Calendario → elige el alojamiento → Disponibilidad → Conectar calendarios → Exportar calendario. Copia el enlace.</li>
+          <li><b>Booking:</b> Extranet → Tarifas y disponibilidad → Sincronizar calendarios → elige la habitación → Exportar calendario.</li>
+          <li><b>Expedia:</b> Partner Central → Tarifas e inventario → Sincronización de calendario → Exportar.</li>
+          <li>Truco para evitar dobles reservas: pega el enlace de Airbnb dentro de Booking y Expedia (opción "Importar"), y lo mismo con los otros. Así cada plataforma bloquea lo que vendieron las otras.</li>
+        </ul>
+      </details>
+      <div id="listaHabs"></div>
+      <div class="fila">
+        <button id="btnAgregarHab" class="primario">+ Agregar habitación</button>
+        <button id="btnRespaldo">Descargar respaldo</button>
+        <label class="boton">Restaurar respaldo <input type="file" id="fileRespaldo" accept="application/json" hidden></label>
+      </div>
+      <p class="suave">Todo queda guardado solo en este computador. Descarga un respaldo de vez en cuando.</p>
+    </section>
+
+    <section id="vacio" class="vacio" hidden>
+      <h2>Bienvenida</h2>
+      <p>Para empezar, agrega tus habitaciones y pega los enlaces de calendario de cada plataforma.</p>
+      <div class="fila centro">
+        <button id="btnEmpezar" class="primario">Agregar habitaciones</button>
+        <button id="btnDemo">Ver con datos de ejemplo</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dlg"><div id="dlgBody"></div><form method="dialog"><button>Cerrar</button></form></dialog>
+
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
