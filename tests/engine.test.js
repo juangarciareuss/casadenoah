@@ -125,4 +125,41 @@ t('solo acepta enlaces de las plataformas', () => {
   assert.ok(!M.enlaceValido('no es enlace'));
 });
 
+t('noche solo "cerrada" con Booking presente es de Booking', () => {
+  const ev = [
+    { start: '2026-12-01', end: '2026-12-03', fuente: 'airbnb', bloqueo: true },
+    { start: '2026-12-01', end: '2026-12-03', fuente: 'booking', bloqueo: true },
+  ];
+  const e = M.estadoDia(ev, '2026-12-02');
+  assert.deepStrictEqual([e.estado, e.fuente], ['bloqueado', 'booking']);
+});
+
+t('enlaces simulados: válidos, estables y con una doble reserva visible', () => {
+  const hoy = '2026-11-08';
+  assert.ok(M.esSimulado(M.enlaceSimulado('airbnb', 3)));
+  assert.ok(!M.esSimulado('simulado:otra:1'));
+  assert.ok(!M.enlaceValido('simulado:airbnb:1'), 'el servidor nunca debe recibir simulados');
+  assert.strictEqual(M.icsSimulado('simulado:booking:1', hoy), M.icsSimulado('simulado:booking:1', hoy));
+  const habs = [0, 1, 2, 3].map((i) => ({ id: 'h' + i, nombre: 'H' + i }));
+  const cache = {};
+  habs.forEach((h, i) => { cache[h.id] = {}; for (const f of ['airbnb', 'booking', 'expedia']) cache[h.id][f] = { eventos: M.parseICS(M.icsSimulado(M.enlaceSimulado(f, i), hoy)) }; });
+  const c = M.choques(habs, cache, [], hoy);
+  assert.strictEqual(c.length, 1);
+  assert.strictEqual(c[0].hab.id, 'h2');
+  assert.ok(M.diffDays(hoy, c[0].desde) <= 6);
+  // Cada estadía se ve como reservada en su plataforma, no como choque falso.
+  const g = M.grilla(habs.slice(0, 2), cache, [], hoy, 30);
+  assert.ok(g.every((f) => f.celdas.every((x) => x.estado !== 'choque')));
+  const fuentes = new Set(g.flatMap((f) => f.celdas.filter((x) => x.estado !== 'libre').map((x) => x.fuente)));
+  assert.deepStrictEqual([...fuentes].sort(), ['airbnb', 'booking', 'expedia']);
+});
+
+t('llegadas y salidas de Booking aunque diga "cerrado"', () => {
+  const c = { h1: { booking: { eventos: [{ start: '2026-12-01', end: '2026-12-03', summary: 'CLOSED - Not available' }] } } };
+  const h = [{ id: 'h1', nombre: 'P1' }];
+  assert.deepStrictEqual(M.resumenDia(h, c, [], '2026-12-01').llegadas.map((x) => x.fuente), ['booking']);
+  assert.deepStrictEqual(M.resumenDia(h, c, [], '2026-12-03').salidas.map((x) => x.fuente), ['booking']);
+  assert.strictEqual(M.resumenDia(h, c, [], '2026-12-02').llegadas.length, 0);
+});
+
 console.log(`${ok} pruebas pasaron`);

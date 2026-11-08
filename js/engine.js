@@ -86,7 +86,10 @@
     const fuentesReserva = new Set(reservas.map((e) => e.fuente));
     if (fuentesReserva.size > 1) return { estado: 'choque', eventos: ahi };
     if (reservas.length) return { estado: 'reservado', fuente: reservas[0].fuente, eventos: ahi };
-    return { estado: 'bloqueado', fuente: ahi[0].fuente, eventos: ahi };
+    // Todo es "no disponible". Booking marca así incluso sus propias reservas, y los ecos de
+    // otras plataformas ya habrían aparecido como reserva; si está Booking, la noche es de Booking.
+    const deBooking = ahi.find((e) => e.fuente === 'booking');
+    return { estado: 'bloqueado', fuente: (deBooking || ahi[0]).fuente, eventos: ahi };
   }
 
   function grilla(habitaciones, cache, directas, desde, dias) {
@@ -126,14 +129,18 @@
   // Resumen del día: libres esta noche, llegadas y salidas.
   function resumenDia(habitaciones, cache, directas, dia) {
     const r = { libres: 0, ocupadas: 0, llegadas: [], salidas: [] };
+    const ayer = addDays(dia, -1);
     for (const h of habitaciones) {
       const ev = eventosDe(h.id, cache, directas);
-      if (estadoDia(ev, dia).estado === 'libre') r.libres++; else r.ocupadas++;
-      for (const e of ev) {
-        if (e.bloqueo) continue;
-        if (e.start === dia) r.llegadas.push({ hab: h, fuente: e.fuente });
-        if (e.end === dia) r.salidas.push({ hab: h, fuente: e.fuente });
-      }
+      const hoyE = estadoDia(ev, dia), ayerE = estadoDia(ev, ayer);
+      if (hoyE.estado === 'libre') r.libres++; else r.ocupadas++;
+      // Llega: una reserva empieza hoy, o la pieza pasa de libre a ocupada (Booking solo dice "cerrado").
+      const empieza = ev.find((e) => !e.bloqueo && e.start === dia);
+      if (empieza) r.llegadas.push({ hab: h, fuente: empieza.fuente });
+      else if (hoyE.estado !== 'libre' && ayerE.estado === 'libre') r.llegadas.push({ hab: h, fuente: hoyE.fuente });
+      const termina = ev.find((e) => !e.bloqueo && e.end === dia);
+      if (termina) r.salidas.push({ hab: h, fuente: termina.fuente });
+      else if (ayerE.estado !== 'libre' && hoyE.estado === 'libre') r.salidas.push({ hab: h, fuente: ayerE.fuente });
     }
     return r;
   }
@@ -161,7 +168,54 @@
     } catch (e) { return false; }
   }
 
-  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, migrate, nuevo, VERSION, enlaceValido };
+
+  // ---------- Enlaces simulados (para probar sin los enlaces reales) ----------
+  // Formato: "simulado:<fuente>:<n° de habitación>". Genera reservas inventadas, estables
+  // durante el día, con el texto que usa cada plataforma. Incluye una doble reserva a propósito.
+  function esSimulado(url) { return /^simulado:(airbnb|booking|expedia):\d+$/.test(url || ''); }
+  function enlaceSimulado(fuente, n) { return `simulado:${fuente}:${n}`; }
+
+  function azar(semilla) {
+    let x = semilla >>> 0 || 1;
+    return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; };
+  }
+
+  function estadiasSimuladas(n, hoy) {
+    const r = azar(1000 + n * 7919);
+    const fuentes = ['airbnb', 'booking', 'expedia'];
+    const out = [];
+    let d = -3 - Math.floor(r() * 3);
+    while (d < 60) {
+      d += Math.floor(r() * 4); // días libres
+      const noches = 1 + Math.floor(r() * 4);
+      out.push({ start: addDays(hoy, d), end: addDays(hoy, d + noches), fuente: fuentes[Math.floor(r() * 3)] });
+      d += noches;
+    }
+    return out.filter((e) => e.start !== e.end);
+  }
+
+  const TEXTO_SIM = {
+    airbnb: { propia: 'Reserved', eco: 'Airbnb (Not available)' },
+    booking: { propia: 'CLOSED - Not available', eco: 'CLOSED - Not available' },
+    expedia: { propia: 'Reservado', eco: 'Bloqueado' },
+  };
+
+  function icsSimulado(url, hoy) {
+    const [, fuente, nTxt] = url.split(':');
+    const n = Number(nTxt);
+    const est = estadiasSimuladas(n, hoy);
+    const lineas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Casa de Noah//Simulado//ES'];
+    const ev = (a, b, txt, id) => lineas.push('BEGIN:VEVENT', `DTSTART;VALUE=DATE:${a.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${b.replace(/-/g, '')}`, `UID:${id}@simulado`, `SUMMARY:${txt}`, 'END:VEVENT');
+    est.forEach((e, i) => ev(e.start, e.end, e.fuente === fuente ? TEXTO_SIM[fuente].propia : TEXTO_SIM[fuente].eco, `${fuente}-${n}-${i}`));
+    // Doble reserva a propósito en la tercera habitación: Airbnb y Expedia venden la misma noche.
+    if (n === 2 && (fuente === 'airbnb' || fuente === 'expedia')) {
+      ev(addDays(hoy, 4), addDays(hoy, 6), TEXTO_SIM[fuente].propia, `choque-${fuente}`);
+    }
+    lineas.push('END:VCALENDAR');
+    return lineas.join('\r\n');
+  }
+
+  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, migrate, nuevo, VERSION, enlaceValido, esSimulado, enlaceSimulado, icsSimulado };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Motor = api;
 })(typeof self !== 'undefined' ? self : this);

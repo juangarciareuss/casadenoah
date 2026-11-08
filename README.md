@@ -12,6 +12,10 @@ Instrucciones para la dueña: `LEEME.txt`.
 
 En Mac o Linux, con Node.js instalado: `node servidor.js`.
 
+## Probar sin enlaces reales
+
+En "Habitaciones y enlaces", el botón "Usar enlaces simulados" llena los enlaces vacíos con calendarios inventados (con una doble reserva a propósito). "Quitar enlaces simulados" los borra y deja los reales.
+
 ## Qué hace
 
 - Lee el calendario (iCal) que exporta cada plataforma, cada 30 minutos o con "Actualizar ahora".

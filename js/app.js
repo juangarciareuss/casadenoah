@@ -86,9 +86,13 @@
     errores = {};
     await Promise.all(tareas.map(async ({ h, fuente, url }) => {
       try {
-        const r = await fetch('/calendario?url=' + encodeURIComponent(url), { headers: CAB });
-        const txt = await r.text();
-        if (!r.ok) throw new Error(txt || 'Error ' + r.status);
+        let txt;
+        if (M.esSimulado(url)) txt = M.icsSimulado(url, M.hoyLocal());
+        else {
+          const r = await fetch('/calendario?url=' + encodeURIComponent(url), { headers: CAB });
+          txt = await r.text();
+          if (!r.ok) throw new Error(txt || 'Error ' + r.status);
+        }
         const eventos = M.parseICS(txt);
         S.cache[h.id] = S.cache[h.id] || {};
         S.cache[h.id][fuente] = { eventos, at: Date.now() };
@@ -120,6 +124,10 @@
     $('#actualizado').textContent = demo ? 'Datos de ejemplo'
       : ultima ? `Actualizado ${ultima.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}${nErr ? ` · ${nErr} enlace(s) con problema` : ''}`
       : hayHabs ? 'Sin actualizar todavía' : '';
+    const haySim = !demo && S.habitaciones.some((h) => Object.values(h.enlaces || {}).some(M.esSimulado));
+    $('#avisoSimulado').hidden = !haySim;
+    $('#btnSimular').hidden = !!demo || !S.habitaciones.length;
+    $('#btnQuitarSim').hidden = !haySim;
     $('#avisoGuardado').hidden = !avisoGuardado || !!demo;
     $('#avisoGuardado').textContent = avisoGuardado;
     renderResumen(); renderAlertas(); renderGrilla(); renderDirectas(); renderConfig(); renderLeyenda();
@@ -128,7 +136,7 @@
   function renderLeyenda() {
     $('#leyenda').innerHTML = Object.values(M.FUENTES).map((f) => `<span><i style="background:${f.color}"></i>${f.nombre}</span>`).join('')
       + '<span><i style="background:var(--libre);border:1px solid #bfe3cc"></i>Libre</span>'
-      + '<span><i style="background:var(--bloq)"></i>Bloqueado</span>'
+      + '<span><i class="rayado" style="--c:#888"></i>Rayado: cerrado, sin detalle</span>'
       + '<span><i style="background:var(--choque)"></i>¡Doble reserva!</span>';
   }
 
@@ -169,7 +177,7 @@
         const hoyc = c.fecha === hoy ? ' hoycol' : '';
         if (c.estado === 'libre') return `<td class="libre${hoyc}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Libre"></td>`;
         if (c.estado === 'choque') return `<td class="choque${hoyc}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Doble reserva">!</td>`;
-        if (c.estado === 'bloqueado') return `<td class="bloqueado${hoyc}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Bloqueado en ${M.FUENTES[c.fuente].nombre}"></td>`;
+        if (c.estado === 'bloqueado') return `<td class="bloqueado${hoyc}" style="--c:${M.FUENTES[c.fuente].color}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Cerrado en ${M.FUENTES[c.fuente].nombre} (sin detalle)">${M.FUENTES[c.fuente].nombre[0]}</td>`;
         const f = M.FUENTES[c.fuente];
         return `<td class="ocupado${hoyc}" style="background:${f.color}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="${f.nombre}">${f.nombre[0]}</td>`;
       }).join('');
@@ -235,7 +243,7 @@
     const campo = input.dataset.campo; const val = input.value.trim();
     if (campo === 'nombre') { h.nombre = val || 'Sin nombre'; }
     else {
-      if (val && !M.enlaceValido(val)) { alert('Ese enlace no parece de ' + M.FUENTES[campo].nombre + '. Debe empezar con https:// y ser de la plataforma.'); input.value = (h.enlaces || {})[campo] || ''; return; }
+      if (val && !M.enlaceValido(val) && !M.esSimulado(val)) { alert('Ese enlace no parece de ' + M.FUENTES[campo].nombre + '. Debe empezar con https:// y ser de la plataforma.'); input.value = (h.enlaces || {})[campo] || ''; return; }
       h.enlaces = h.enlaces || {}; h.enlaces[campo] = val;
     }
     guardar(); render();
@@ -329,6 +337,20 @@
     S.habitaciones.push({ id: uid(), nombre: 'Habitación ' + (S.habitaciones.length + 1), enlaces: {} }); guardar(); render();
   });
 
+  $('#btnSimular').addEventListener('click', () => {
+    let n = 0;
+    S.habitaciones.forEach((h, i) => {
+      h.enlaces = h.enlaces || {};
+      for (const f of ['airbnb', 'booking', 'expedia']) if (!h.enlaces[f]) { h.enlaces[f] = M.enlaceSimulado(f, i); n++; }
+    });
+    if (!n) { alert('Todas las habitaciones ya tienen sus 3 enlaces.'); return; }
+    guardar(); render(); actualizar();
+  });
+  $('#btnQuitarSim').addEventListener('click', () => {
+    if (!confirm('¿Quitar todos los enlaces simulados? Los enlaces reales se mantienen.')) return;
+    for (const h of S.habitaciones) for (const f of Object.keys(h.enlaces || {})) if (M.esSimulado(h.enlaces[f])) { h.enlaces[f] = ''; if (S.cache[h.id]) delete S.cache[h.id][f]; }
+    guardar(); render();
+  });
   $('#btnRespaldo').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');

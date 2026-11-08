@@ -48,7 +48,7 @@ label.boton { display: inline-block; border: 1px solid var(--linea); border-radi
 #grilla td { height: 34px; border-radius: 5px; text-align: center; font-size: 11px; color: #fff; cursor: pointer; }
 #grilla td.libre { background: var(--libre); }
 #grilla td.libre:hover { outline: 2px solid var(--libre-ink); }
-#grilla td.bloqueado { background: repeating-linear-gradient(45deg, var(--bloq), var(--bloq) 4px, #ddd8cc 4px, #ddd8cc 8px); }
+#grilla td.bloqueado, .leyenda i.rayado { background: repeating-linear-gradient(45deg, var(--c), var(--c) 4px, color-mix(in srgb, var(--c) 45%, white) 4px, color-mix(in srgb, var(--c) 45%, white) 8px); }
 #grilla td.choque { background: var(--choque); font-weight: 700; }
 #grilla td.hoycol { box-shadow: inset 0 0 0 2px var(--acento); }
 #grilla tr.err th.hab::after { content: " ⚠"; color: var(--choque); }

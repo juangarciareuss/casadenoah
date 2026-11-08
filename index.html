@@ -27,6 +27,7 @@
   </div>
 
   <div id="avisoGuardado" class="banner rojo" hidden></div>
+  <div id="avisoSimulado" class="banner" hidden>Hay enlaces simulados: esas reservas son inventadas, solo para probar. Cámbialos por los reales en "Habitaciones y enlaces".</div>
 
   <main>
     <section id="resumen" class="tarjetas"></section>
@@ -88,6 +89,8 @@
       <div id="listaHabs"></div>
       <div class="fila">
         <button id="btnAgregarHab" class="primario">+ Agregar habitación</button>
+        <button id="btnSimular">Usar enlaces simulados (para probar)</button>
+        <button id="btnQuitarSim" class="peligro">Quitar enlaces simulados</button>
         <button id="btnRespaldo">Descargar respaldo</button>
         <label class="boton">Restaurar respaldo <input type="file" id="fileRespaldo" accept="application/json" hidden></label>
       </div>
