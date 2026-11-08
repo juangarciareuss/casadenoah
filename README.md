@@ -34,3 +34,7 @@ En "Habitaciones y enlaces", el botón "Usar enlaces simulados" llena los enlace
 - `servidor.ps1` (Windows) y `servidor.js` (Mac/Linux y pruebas): el programa local. Muestran la página en `http://localhost:8642`, traen los calendarios (solo de las plataformas) y guardan los datos. Deben hacer lo mismo.
 
 Pruebas: `node tests/engine.test.js && node tests/servidor.test.js`
+
+## Ganancias
+
+Los calendarios de las plataformas no traen nombre ni valor: se escriben a mano (en la reserva o en la pestaña Ganancias). La ganancia se calcula por mes de llegada, restando la comisión de cada plataforma (editable).

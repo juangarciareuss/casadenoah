@@ -28,24 +28,57 @@
 
   const CAB = { 'X-Casa-Noah': '1' };
 
-  // Lee los datos: primero el archivo del computador; si no existe, lo que había en el navegador.
-  function ejemploMaqueta() {
+  const PESOS = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+  const plata = (n) => PESOS.format(n || 0);
+  function avisar(msg) {
+    const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+  }
+  const leerMonto = (txt) => Number(String(txt || '').replace(/\D/g, '')) || 0;
+
+  // ---------- Datos de ejemplo (inventados) ----------
+  const NOMBRES_EJEMPLO = ['Camila Rojas', 'Matías González', 'Sofía Muñoz', 'Benjamín Díaz', 'Valentina Pérez', 'Tomás Soto', 'Isidora Contreras', 'Joaquín Silva', 'Florencia Morales', 'Martín Araya', 'Emma Schneider', 'Lucas Martin', 'Antonia Fuentes', 'Vicente Reyes', 'Julieta Torres', 'Agustín Castro'];
+  const TARIFA_EJEMPLO = { 'Cabaña': 72000, Roble: 78000, 'Raulí': 62000, 'Arrayán': 66000, Lingue: 62000, 'Ciprés': 48000 };
+
+  // Lee los calendarios simulados al instante y pone nombres y valores inventados a las reservas sin datos.
+  function rellenarEjemplo(datos) {
+    const hoy = M.hoyLocal();
+    for (const h of datos.habitaciones) {
+      for (const [f, url] of Object.entries(h.enlaces || {})) {
+        if (!M.esSimulado(url)) continue;
+        (datos.cache[h.id] = datos.cache[h.id] || {})[f] = { eventos: M.parseICS(M.icsSimulado(url, hoy)), at: Date.now() };
+      }
+    }
+    const est = M.estadias(datos.habitaciones, datos.cache, [], M.addDays(hoy, -70), M.addDays(hoy, 90));
+    est.forEach((e, i) => {
+      if (datos.detalles[e.clave]) return;
+      if (!M.esSimulado((e.hab.enlaces || {})[e.fuente])) return;
+      const tarifa = TARIFA_EJEMPLO[e.hab.nombre] || 60000;
+      // Algunas reservas futuras quedan sin valor, para mostrar el aviso de "falta el valor".
+      const sinValor = e.start > M.addDays(hoy, 20) && i % 4 === 0;
+      datos.detalles[e.clave] = { nombre: NOMBRES_EJEMPLO[(i * 7) % NOMBRES_EJEMPLO.length], monto: sinValor ? 0 : tarifa * e.noches };
+    });
+    return datos;
+  }
+
+  function ejemploCompleto() {
     const hoy = M.hoyLocal();
     const habitaciones = HABS_CASA.map((n, i) => ({ id: 'm' + i, nombre: n, enlaces: { airbnb: M.enlaceSimulado('airbnb', i), booking: M.enlaceSimulado('booking', i), expedia: M.enlaceSimulado('expedia', i) } }));
+    const datos = rellenarEjemplo(M.migrate({ habitaciones }));
     // Una reserva directa de ejemplo, en las primeras dos noches libres de Lingue desde la próxima semana.
-    const cache = { m4: {} };
-    for (const f of ['airbnb', 'booking', 'expedia']) cache.m4[f] = { eventos: M.parseICS(M.icsSimulado(habitaciones[4].enlaces[f], hoy)) };
     let d = 7;
-    while (d < 60 && !M.libres([habitaciones[4]], cache, [], M.addDays(hoy, d), M.addDays(hoy, d + 2)).length) d++;
-    const directas = [{ id: 'md1', hab: 'm4', start: M.addDays(hoy, d), end: M.addDays(hoy, d + 2), nombre: 'Reserva por WhatsApp (ejemplo)' }];
-    return M.migrate({ habitaciones, cache: {}, directas });
+    while (d < 60 && !M.libres([habitaciones[4]], datos.cache, [], M.addDays(hoy, d), M.addDays(hoy, d + 2)).length) d++;
+    datos.directas.push({ id: 'md1', hab: 'm4', start: M.addDays(hoy, d), end: M.addDays(hoy, d + 2), nombre: 'Paula Herrera (WhatsApp)', monto: 2 * 58000 });
+    datos.ejemploDia = hoy;
+    return datos;
   }
 
   async function cargar() {
     if (MAQUETA) {
       enArchivo = true;
-      try { const g = JSON.parse(localStorage.getItem(CLAVE + '-maqueta')); if (g && g.habitaciones && g.habitaciones.length) return M.migrate(g); } catch (e) { /* sin datos */ }
-      return ejemploMaqueta();
+      // Las reservas simuladas se mueven con los días: si el ejemplo guardado es de otro día, se arma de nuevo.
+      try { const g = JSON.parse(localStorage.getItem(CLAVE + '-maqueta')); if (g && g.ejemploDia === M.hoyLocal() && g.v === M.VERSION) return M.migrate(g); } catch (e) { /* sin datos */ }
+      return ejemploCompleto();
     }
     let local = null;
     try { local = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { /* sin datos en el navegador */ }
@@ -126,6 +159,7 @@
     for (const h of S.habitaciones) {
       for (const f of Object.keys(S.cache[h.id] || {})) if (!(h.enlaces || {})[f]) delete S.cache[h.id][f];
     }
+    if (S.habitaciones.some((h) => Object.values(h.enlaces || {}).some(M.esSimulado))) rellenarEjemplo(S);
     ultima = new Date();
     guardar();
     actualizando = false;
@@ -156,13 +190,15 @@
     $('#btnQuitarSim').hidden = !haySim;
     $('#avisoGuardado').hidden = !avisoGuardado || !!demo;
     $('#avisoGuardado').textContent = avisoGuardado;
-    renderResumen(); renderAlertas(); renderGrilla(); renderDirectas(); renderConfig(); renderLeyenda();
+    renderResumen(); renderAlertas(); renderGrilla(); renderDirectas(); renderConfig(); renderLeyenda(); renderGanancias();
   }
 
   function renderLeyenda() {
-    $('#leyenda').innerHTML = Object.values(M.FUENTES).map((f) => `<span><i style="background:${f.color}"></i>${f.nombre}</span>`).join('')
-      + '<span><i style="background:var(--libre);border:1px solid #bfe3cc"></i>Libre</span>'
-      + '<span><i class="rayado" style="--c:#888"></i>Rayado: cerrado, sin detalle</span>'
+    const esquina = (f) => `<span><i class="muestra" style="--c:${f.color}"></i>${f.nombre}</span>`;
+    $('#leyenda').innerHTML = '<span><i style="background:var(--ocupado)"></i>Ocupado</span>'
+      + '<span class="suave">esquina:</span>' + Object.values(M.FUENTES).map(esquina).join('')
+      + '<span><i style="background:var(--libre);border:1px solid var(--linea)"></i>Libre</span>'
+      + '<span><i class="cerrado"></i>Cerrado</span>'
       + '<span><i style="background:var(--choque)"></i>¡Doble reserva!</span>';
   }
 
@@ -175,7 +211,9 @@
       <div class="tarjeta"><div class="det">Libres esta noche</div><div class="num">${r.libres} <span class="det">de ${d.habitaciones.length}</span></div></div>
       <div class="tarjeta"><div class="det">Llegan hoy</div><div class="num">${r.llegadas.length}</div><div class="det">${lista(r.llegadas)}</div></div>
       <div class="tarjeta"><div class="det">Se van hoy</div><div class="num">${r.salidas.length}</div><div class="det">${lista(r.salidas)}</div></div>
-      <div class="tarjeta"><div class="det">Noches libres próximos 7 días</div><div class="num">${r7.reduce((a, b) => a + b, 0)}</div><div class="det">${r7.join(' · ')}</div></div>`;
+      <div class="tarjeta"><div class="det">Noches libres próximos 7 días</div><div class="num">${r7.reduce((a, b) => a + b, 0)}</div><div class="det">${r7.join(' · ')}</div></div>
+      ${(() => { const [a, b] = rangoMes(0); const g = M.ganancias(d.habitaciones, d.cache, d.directas, d.detalles, d.comisiones, a, b);
+        return `<button class="tarjeta tarjeta-boton" data-ir="ganancias"><div class="det">Ganancia de ${MESES_LARGOS[+a.slice(5, 7) - 1]}</div><div class="num">${plata(g.neto)}</div><div class="det">${g.sinValor ? `${g.sinValor} reserva${g.sinValor === 1 ? '' : 's'} sin valor` : 'Ver detalle'}</div></button>`; })()}`;
   }
 
   function renderAlertas() {
@@ -199,18 +237,61 @@
       return `<th class="${f === hoy ? 'hoy' : ''} ${dow === 0 || dow === 6 ? 'finde' : ''}">${DIAS_SEM[dow]}<br><b>${dt.getDate()}</b>${mostrarMes ? '<br>' + mes : ''}</th>`;
     }).join('');
     const filas = g.map((fila) => {
-      const tds = fila.celdas.map((c) => {
+      let tds = '';
+      const cel = fila.celdas;
+      for (let i = 0; i < cel.length; i++) {
+        const c = cel[i];
         const hoyc = c.fecha === hoy ? ' hoycol' : '';
-        if (c.estado === 'libre') return `<td class="libre${hoyc}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Libre"></td>`;
-        if (c.estado === 'choque') return `<td class="choque${hoyc}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Doble reserva">!</td>`;
-        if (c.estado === 'bloqueado') return `<td class="bloqueado${hoyc}" style="--c:${M.FUENTES[c.fuente].color}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="Cerrado en ${M.FUENTES[c.fuente].nombre} (sin detalle)">${M.FUENTES[c.fuente].nombre[0]}</td>`;
-        const f = M.FUENTES[c.fuente];
-        return `<td class="ocupado${hoyc}" style="background:${f.color}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="${f.nombre}">${f.nombre[0]}</td>`;
-      }).join('');
+        const datos = `data-h="${fila.hab.id}" data-f="${c.fecha}"`;
+        if (c.estado === 'libre') { tds += `<td class="libre${hoyc}" ${datos} title="Libre"></td>`; continue; }
+        if (c.estado === 'choque') { tds += `<td class="choque${hoyc}" ${datos} title="Doble reserva">!</td>`; continue; }
+        if (c.estado === 'bloqueado') { tds += `<td class="cerrado${hoyc}" ${datos} title="Cerrado en ${M.FUENTES[c.fuente].nombre}"></td>`; continue; }
+        // Reserva: una barra que junta todas sus noches seguidas.
+        let n = 1;
+        while (i + n < cel.length && cel[i + n].estado === 'reservado' && cel[i + n].clave === c.clave) n++;
+        const est = { clave: c.clave, fuente: c.fuente };
+        const det = M.detalleDe(est, d.detalles, d.directas);
+        const fu = M.FUENTES[c.fuente];
+        const texto = det.nombre || 'Sin nombre';
+        tds += `<td class="ocupado" colspan="${n}" style="--c:${fu.color}" ${datos} title="${esc(texto)} · ${fu.nombre}${det.monto ? ' · ' + plata(det.monto) : ''}"><span class="${det.nombre ? '' : 'sin'}">${esc(texto)}</span></td>`;
+        i += n - 1;
+      }
       const f = fotoDe(fila.hab);
       return `<tr class="${errores[fila.hab.id] ? 'err' : ''}"><th class="hab"><button class="nombre-hab" data-ver-hab="${fila.hab.id}">${f ? `<img src="${f}" alt="">` : ''}<span>${esc(fila.hab.nombre)}</span></button></th>${tds}</tr>`;
     }).join('');
-    $('#grilla').innerHTML = `<thead><tr><th class="hab"></th>${cab}</tr></thead><tbody>${filas}</tbody>`;
+    $('#grilla').style.minWidth = (150 + dias * 34) + 'px';
+    $('#grilla').innerHTML = `<colgroup><col class="col-hab">${fechas.map(() => '<col>').join('')}</colgroup><thead><tr><th class="hab"></th>${cab}</tr></thead><tbody>${filas}</tbody>`;
+  }
+
+  // Formulario para poner nombre y valor a una reserva.
+  function formReserva(est) {
+    const d = D();
+    const det = M.detalleDe(est, d.detalles, d.directas);
+    const fu = M.FUENTES[est.fuente];
+    const com = Number(d.comisiones[est.fuente]) || 0;
+    const noches = M.diffDays(est.start, est.end);
+    return `<form class="form-reserva" data-clave="${esc(est.clave)}" data-fuente="${est.fuente}">
+      <p>${pill(est.fuente)} ${fechaLarga(est.start)} → ${fechaLarga(est.end)} · ${noches} noche${noches === 1 ? '' : 's'}</p>
+      <label>Nombre del visitante <input name="nombre" value="${esc(det.nombre)}" maxlength="60" placeholder="Ej.: María Pérez"></label>
+      <label>Valor total que pagó <input name="monto" inputmode="numeric" value="${det.monto ? plata(det.monto) : ''}" placeholder="$0"></label>
+      <p class="suave calculo">${det.monto ? `Comisión ${fu.nombre} ${com}%: ${plata(Math.round(det.monto * com / 100))} · Te queda: <b>${plata(det.monto - Math.round(det.monto * com / 100))}</b>` : `Comisión de ${fu.nombre}: ${com}%.`}</p>
+      <button class="primario">Guardar</button>
+    </form>`;
+  }
+
+  function guardarReserva(form) {
+    const d = D();
+    const clave = form.dataset.clave;
+    const nombre = form.nombre.value.trim();
+    const monto = leerMonto(form.monto.value);
+    if (clave.startsWith('d:')) {
+      const r = d.directas.find((x) => 'd:' + x.id === clave);
+      if (r) { r.nombre = nombre; r.monto = monto; }
+    } else if (nombre || monto) d.detalles[clave] = { nombre, monto };
+    else delete d.detalles[clave];
+    guardar(); render();
+    $('#dlg').close();
+    avisar('Guardado.');
   }
 
   function detalleCelda(habId, fecha) {
@@ -223,10 +304,15 @@
       $('#dNombre').focus();
       return;
     }
-    const filas = est.eventos.map((e) => `<li>${pill(e.fuente)} ${fechaLarga(e.start)} → ${fechaLarga(e.end)} (${M.diffDays(e.start, e.end)} noche${M.diffDays(e.start, e.end) === 1 ? '' : 's'})<br><span class="suave">${esc(e.summary)}${e.bloqueo ? ' · solo bloqueo' : ''}</span></li>`).join('');
-    $('#dlgBody').innerHTML = `<h2>${esc(nombreHab(habId))} · ${fechaLarga(fecha)}</h2>
-      ${est.estado === 'choque' ? '<p class="alerta">Dos plataformas vendieron esta noche. Cancela una de las reservas.</p>' : ''}
-      <ul>${filas}</ul>`;
+    let cuerpo;
+    if (est.estado === 'bloqueado') {
+      cuerpo = `<p>Esta noche está cerrada en ${M.FUENTES[est.fuente].nombre}, sin reserva.</p>`;
+    } else {
+      // En una doble reserva se muestran las dos; si no, solo la reserva principal.
+      const reales = est.estado === 'choque' ? est.eventos.filter((e) => !e.bloqueo) : est.eventos.filter((e) => e.clave === est.clave);
+      cuerpo = (est.estado === 'choque' ? '<p class="alerta">Dos plataformas vendieron esta noche. Cancela una de las reservas.</p>' : '') + reales.map(formReserva).join('');
+    }
+    $('#dlgBody').innerHTML = `<h2>${esc(nombreHab(habId))} · ${fechaLarga(fecha)}</h2>${cuerpo}`;
     $('#dlg').showModal();
   }
 
@@ -234,21 +320,64 @@
     const d = D(); const h = d.habitaciones.find((x) => x.id === habId); if (!h) return;
     const hoy = M.hoyLocal();
     const ev = M.eventosDe(h.id, d.cache, d.directas);
-    // Próximas estadías: noches seguidas ocupadas, agrupadas.
-    const tramos = []; let actual = null;
-    for (let i = 0; i < 45; i++) {
-      const f = M.addDays(hoy, i); const e = M.estadoDia(ev, f);
-      if (e.estado === 'libre') { actual = null; continue; }
-      if (actual && actual.fuente === e.fuente && actual.estado === e.estado) { actual.hasta = M.addDays(f, 1); continue; }
-      actual = { desde: f, hasta: M.addDays(f, 1), fuente: e.fuente || 'directa', estado: e.estado }; tramos.push(actual);
-    }
+    const proximas = M.estadias([h], d.cache, d.directas, M.addDays(hoy, -60), M.addDays(hoy, 60)).filter((e) => e.end > hoy);
     const libresMes = Array.from({ length: 30 }, (_, i) => M.estadoDia(ev, M.addDays(hoy, i)).estado === 'libre').filter(Boolean).length;
     $('#dlgBody').innerHTML = `${fotoDe(h) ? `<img class="foto-grande" src="${fotoDe(h)}" alt="Foto de ${esc(h.nombre)}">` : ''}
       <h2>${esc(h.nombre)}</h2>
       <p>${libresMes} noches libres en los próximos 30 días.</p>
       <h3>Próximas reservas</h3>
-      ${tramos.length ? `<ul class="tramos">${tramos.slice(0, 8).map((t) => `<li>${t.estado === 'choque' ? '<span class="pill" style="background:var(--choque)">Doble reserva</span>' : pill(t.fuente)} ${fechaLarga(t.desde)} → ${fechaLarga(t.hasta)}</li>`).join('')}</ul>` : '<p class="suave">Sin reservas en las próximas semanas.</p>'}`;
+      ${proximas.length ? `<ul class="tramos">${proximas.slice(0, 8).map((t) => { const det = M.detalleDe(t, d.detalles, d.directas); return `<li>${pill(t.fuente)} ${fechaLarga(t.start)} → ${fechaLarga(t.end)} · ${esc(det.nombre || 'Sin nombre')}${det.monto ? ' · ' + plata(det.monto) : ''}</li>`; }).join('')}</ul>` : '<p class="suave">Sin reservas en las próximas semanas.</p>'}`;
     $('#dlg').showModal();
+  }
+
+  // ---------- Ganancias ----------
+  const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  let mesOffset = 0;
+  function rangoMes(off) {
+    const h = new Date(); const dt = new Date(h.getFullYear(), h.getMonth() + off, 1);
+    const a = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-01`;
+    const sig = new Date(dt.getFullYear(), dt.getMonth() + 1, 1);
+    return [a, `${sig.getFullYear()}-${String(sig.getMonth() + 1).padStart(2, '0')}-01`];
+  }
+
+  function renderGanancias() {
+    if (tabActual() !== 'ganancias') return;
+    const d = D();
+    const [a, b] = rangoMes(mesOffset);
+    const g = M.ganancias(d.habitaciones, d.cache, d.directas, d.detalles, d.comisiones, a, b);
+    $('#gMes').textContent = `${MESES_LARGOS[+a.slice(5, 7) - 1]} ${a.slice(0, 4)}`;
+    const ocup = g.nochesTotales ? Math.round(100 * g.nochesOcupadas / g.nochesTotales) : 0;
+    $('#gTarjetas').innerHTML = `
+      <div class="tarjeta destacada"><div class="det">Lo que ganas (después de comisiones)</div><div class="num">${plata(g.neto)}</div><div class="det">${g.estadias.length} reserva${g.estadias.length === 1 ? '' : 's'} que llegan este mes</div></div>
+      <div class="tarjeta"><div class="det">Total que pagaron</div><div class="num">${plata(g.bruto)}</div></div>
+      <div class="tarjeta"><div class="det">Comisiones de plataformas</div><div class="num">${plata(g.comision)}</div></div>
+      <div class="tarjeta"><div class="det">Ocupación del mes</div><div class="num">${ocup}%</div><div class="det">${g.nochesOcupadas} de ${g.nochesTotales} noches</div></div>`;
+    $('#gAviso').hidden = !g.sinValor;
+    $('#gAviso').textContent = `Hay ${g.sinValor} reserva${g.sinValor === 1 ? '' : 's'} sin valor. Escríbelo en la lista de abajo para que la ganancia sea exacta.`;
+    const fuentes = Object.keys(M.FUENTES).filter((f) => g.porFuente[f]);
+    $('#gFuentes').innerHTML = `<h3>Por plataforma</h3><div class="lista-wrap"><table class="lista"><tr><th>Origen</th><th class="num">Reservas</th><th class="num">Pagaron</th><th class="num">Te queda</th></tr>${fuentes.map((f) => `<tr><td>${pill(f)}</td><td class="num">${g.porFuente[f].reservas}</td><td class="num">${plata(g.porFuente[f].bruto)}</td><td class="num"><b>${plata(g.porFuente[f].neto)}</b></td></tr>`).join('') || '<tr><td colspan="4" class="suave">Sin reservas con valor.</td></tr>'}</table></div>`;
+    $('#gHabs').innerHTML = `<h3>Por habitación</h3><div class="lista-wrap"><table class="lista"><tr><th>Habitación</th><th class="num">Reservas</th><th class="num">Te queda</th></tr>${d.habitaciones.map((h) => { const x = g.porHab[h.id]; return `<tr><td>${esc(h.nombre)}</td><td class="num">${x ? x.reservas : 0}</td><td class="num"><b>${plata(x ? x.neto : 0)}</b></td></tr>`; }).join('')}</table></div>`;
+    $('#gLista').innerHTML = g.estadias.length ? `<div class="lista-wrap"><table class="lista"><tr><th>Llegada</th><th>Habitación</th><th>Origen</th><th>Visitante</th><th class="num">Noches</th><th>Valor total</th><th class="num">Te queda</th></tr>${g.estadias.map((e) => `<tr data-clave="${esc(e.clave)}">
+        <td>${fechaLarga(e.start)}</td><td>${esc(e.hab.nombre)}</td><td>${pill(e.fuente)}</td>
+        <td><input class="en-linea" data-editar="nombre" value="${esc(e.nombre)}" placeholder="Nombre" maxlength="60"></td>
+        <td class="num">${e.noches}</td>
+        <td><input class="en-linea monto ${e.monto ? '' : 'vacio-monto'}" data-editar="monto" inputmode="numeric" value="${e.monto ? plata(e.monto) : ''}" placeholder="Falta el valor"></td>
+        <td class="num">${e.monto ? plata(e.neto) : '—'}</td></tr>`).join('')}</table></div>` : '<p class="suave">No hay reservas que lleguen este mes.</p>';
+    $('#gComisiones').innerHTML = ['airbnb', 'booking', 'expedia'].map((f) => `<label>${M.FUENTES[f].nombre} <span class="con-sufijo"><input type="number" min="0" max="50" step="0.5" data-comision="${f}" value="${d.comisiones[f]}">%</span></label>`).join('');
+  }
+
+  function editarEnLinea(input) {
+    const d = D();
+    const clave = input.closest('tr').dataset.clave;
+    const campo = input.dataset.editar;
+    const valor = campo === 'monto' ? leerMonto(input.value) : input.value.trim();
+    if (clave.startsWith('d:')) {
+      const r = d.directas.find((x) => 'd:' + x.id === clave); if (r) r[campo] = valor;
+    } else {
+      const det = (d.detalles[clave] = d.detalles[clave] || { nombre: '', monto: 0 });
+      det[campo] = valor;
+    }
+    guardar(); render();
   }
 
   // ---------- Reservas directas ----------
@@ -258,7 +387,7 @@
     const hoy = M.hoyLocal();
     const prox = d.directas.filter((x) => x.end >= hoy).sort((a, b) => (a.start < b.start ? -1 : 1));
     $('#listaDirectas').innerHTML = prox.length
-      ? `<div class="lista-wrap"><table class="lista"><tr><th>Habitación</th><th>Llegada</th><th>Salida</th><th>Nombre o nota</th><th></th></tr>${prox.map((x) => `<tr><td>${esc(nombreHab(x.hab))}</td><td>${fechaLarga(x.start)}</td><td>${fechaLarga(x.end)}</td><td>${esc(x.nombre)}</td><td><button class="peligro" data-borrar-directa="${x.id}">Borrar</button></td></tr>`).join('')}</table></div>`
+      ? `<div class="lista-wrap"><table class="lista"><tr><th>Habitación</th><th>Llegada</th><th>Salida</th><th>Nombre o nota</th><th>Valor</th><th></th></tr>${prox.map((x) => `<tr><td>${esc(nombreHab(x.hab))}</td><td>${fechaLarga(x.start)}</td><td>${fechaLarga(x.end)}</td><td>${esc(x.nombre)}</td><td class="num">${x.monto ? plata(x.monto) : '<span class="falta">Falta</span>'}</td><td><button class="peligro" data-borrar-directa="${x.id}">Borrar</button></td></tr>`).join('')}</table></div>`
       : '<p class="suave">No hay reservas directas próximas.</p>';
   }
 
@@ -305,28 +434,6 @@
     render();
   }
 
-  // ---------- Datos de ejemplo (inventados) ----------
-  function crearDemo() {
-    const hoy = M.hoyLocal();
-    const habitaciones = HABS_CASA.map((n, i) => ({ id: 'e' + i, nombre: n, enlaces: {} }));
-    const cache = {};
-    const ev = (a, b, s) => ({ start: M.addDays(hoy, a), end: M.addDays(hoy, b), summary: s });
-    const reservas = {
-      e0: { airbnb: [ev(-2, 2, 'Reserved'), ev(6, 9, 'Reserved')], booking: [ev(-2, 2, 'CLOSED - Not available'), ev(12, 15, 'Reserva')] },
-      e1: { booking: [ev(0, 3, 'Reserva'), ev(8, 11, 'Reserva')], expedia: [ev(4, 6, 'Reserva')] },
-      e2: { airbnb: [ev(1, 4, 'Reserved')], booking: [ev(3, 5, 'Reserva')] },
-      e3: { expedia: [ev(-1, 1, 'Reserva'), ev(9, 13, 'Reserva')] },
-      e4: { booking: [ev(5, 7, 'Reserva')], airbnb: [ev(14, 16, 'Airbnb (Not available)')] },
-      e5: { airbnb: [ev(2, 6, 'Reserved')] },
-    };
-    for (const [h, porF] of Object.entries(reservas)) {
-      cache[h] = {};
-      for (const [f, eventos] of Object.entries(porF)) cache[h][f] = { eventos };
-    }
-    const directas = [{ id: 'x1', hab: 'e3', start: M.addDays(hoy, 3), end: M.addDays(hoy, 5), nombre: 'Huésped de ejemplo' }];
-    return { v: M.VERSION, habitaciones, cache, directas };
-  }
-
   // ---------- Eventos ----------
   $('#tabs').addEventListener('click', (e) => { if (e.target.dataset.tab) irTab(e.target.dataset.tab); });
   $('#btnActualizar').addEventListener('click', actualizar);
@@ -335,7 +442,7 @@
   $('#hoy').addEventListener('click', () => { desde = M.addDays(M.hoyLocal(), -1); renderGrilla(); });
   $('#dias').addEventListener('change', renderGrilla);
   $('#grilla').addEventListener('click', (e) => { const td = e.target.closest('td[data-h]'); if (td) detalleCelda(td.dataset.h, td.dataset.f); });
-  $('#btnDemo').addEventListener('click', () => { demo = crearDemo(); irTab('calendario'); });
+  $('#btnDemo').addEventListener('click', () => { demo = ejemploCompleto(); irTab('calendario'); });
   $('#btnSalirDemo').addEventListener('click', () => { demo = null; render(); });
   $('#btnEmpezar').addEventListener('click', () => irTab('config'));
 
@@ -352,12 +459,12 @@
 
   $('#formDirecta').addEventListener('submit', (e) => {
     e.preventDefault();
-    if (demo) { alert('En el ejemplo no se guardan cambios.'); return; }
-    const r = { id: uid(), hab: $('#dHab').value, start: $('#dLlegada').value, end: $('#dSalida').value, nombre: $('#dNombre').value.trim() };
+    const S0 = D();
+    const r = { id: uid(), hab: $('#dHab').value, start: $('#dLlegada').value, end: $('#dSalida').value, nombre: $('#dNombre').value.trim(), monto: leerMonto($('#dMonto').value) };
     if (r.end <= r.start) { alert('La salida debe ser después de la llegada.'); return; }
-    const ocupada = !M.libres(S.habitaciones.filter((h) => h.id === r.hab), S.cache, S.directas, r.start, r.end).length;
+    const ocupada = !M.libres(S0.habitaciones.filter((h) => h.id === r.hab), S0.cache, S0.directas, r.start, r.end).length;
     if (ocupada && !confirm('Esa habitación ya está ocupada alguna de esas noches. ¿Anotar igual?')) return;
-    S.directas.push(r); guardar();
+    S0.directas.push(r); guardar();
     $('#formDirecta').reset();
     $('#dAviso').hidden = false;
     $('#dAviso').textContent = `Anotada. Recuerda cerrar ${nombreHab(r.hab)} del ${fechaLarga(r.start)} al ${fechaLarga(r.end)} en Airbnb, Booking y Expedia.`;
@@ -366,6 +473,8 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target;
+    const ir = t.closest && t.closest('[data-ir]');
+    if (ir) { irTab(ir.dataset.ir); return; }
     const ver = t.closest && t.closest('[data-ver-hab]');
     if (ver) { verHabitacion(ver.dataset.verHab); return; }
     if (t.dataset.borrarDirecta && !demo && confirm('¿Borrar esta reserva directa?')) {
@@ -381,6 +490,14 @@
       S.habitaciones = HABS_CASA.map((n) => ({ id: uid(), nombre: n, enlaces: {} })); guardar(); render();
     }
   });
+  $('#gPrev').addEventListener('click', () => { mesOffset--; renderGanancias(); });
+  $('#gNext').addEventListener('click', () => { mesOffset++; renderGanancias(); });
+  $('#gHoy').addEventListener('click', () => { mesOffset = 0; renderGanancias(); });
+  $('#tab-ganancias').addEventListener('change', (e) => {
+    if (e.target.dataset.editar) editarEnLinea(e.target);
+    if (e.target.dataset.comision) { const v = Math.min(50, Math.max(0, Number(e.target.value) || 0)); D().comisiones[e.target.dataset.comision] = v; guardar(); render(); }
+  });
+  document.addEventListener('submit', (e) => { if (e.target.classList.contains('form-reserva')) { e.preventDefault(); guardarReserva(e.target); } });
   $('#listaHabs').addEventListener('change', (e) => { if (e.target.dataset.campo) cambiarCampo(e.target); });
   $('#btnAgregarHab').addEventListener('click', () => {
     if (demo) { alert('En el ejemplo no se guardan cambios.'); return; }
@@ -388,7 +505,7 @@
   });
 
   $('#btnReiniciar').addEventListener('click', () => {
-    S = ejemploMaqueta(); errores = {}; guardar(); irTab('calendario'); actualizar();
+    S = ejemploCompleto(); errores = {}; guardar(); irTab('calendario');
   });
   $('#btnSimular').addEventListener('click', () => {
     let n = 0;
@@ -397,7 +514,7 @@
       for (const f of ['airbnb', 'booking', 'expedia']) if (!h.enlaces[f]) { h.enlaces[f] = M.enlaceSimulado(f, i); n++; }
     });
     if (!n) { alert('Todas las habitaciones ya tienen sus 3 enlaces.'); return; }
-    guardar(); render(); actualizar();
+    rellenarEjemplo(S); guardar(); render();
   });
   $('#btnQuitarSim').addEventListener('click', () => {
     if (!confirm('¿Quitar todos los enlaces simulados? Los enlaces reales se mantienen.')) return;

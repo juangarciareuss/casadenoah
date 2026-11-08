@@ -67,29 +67,91 @@
     const porFuente = (cache && cache[habId]) || {};
     for (const fuente of Object.keys(porFuente)) {
       for (const e of porFuente[fuente].eventos || []) {
-        out.push({ start: e.start, end: e.end, fuente, summary: e.summary, bloqueo: esBloqueo(e.summary) });
+        out.push({ start: e.start, end: e.end, fuente, summary: e.summary, bloqueo: esBloqueo(e.summary), clave: `${habId}|${fuente}|${e.start}|${e.end}` });
       }
     }
     for (const d of directas || []) {
-      if (d.hab === habId) out.push({ start: d.start, end: d.end, fuente: 'directa', summary: d.nombre || 'Reserva directa', bloqueo: false, id: d.id });
+      if (d.hab === habId) out.push({ start: d.start, end: d.end, fuente: 'directa', summary: d.nombre || 'Reserva directa', bloqueo: false, id: d.id, clave: 'd:' + d.id });
     }
     return out;
   }
 
   function ocupaNoche(e, dia) { return e.start <= dia && dia < e.end; }
 
-  // Estado de una habitación en un día: { estado: 'libre'|'reservado'|'bloqueado'|'choque', fuente, eventos }
+  // Estado de una habitación en un día:
+  // { estado: 'libre'|'reservado'|'bloqueado'|'choque', fuente, clave (de la reserva), eventos }
+  // 'bloqueado' = cerrado a mano en Airbnb o Expedia, sin reserva.
   function estadoDia(eventos, dia) {
     const ahi = eventos.filter((e) => ocupaNoche(e, dia));
     if (!ahi.length) return { estado: 'libre', eventos: [] };
     const reservas = ahi.filter((e) => !e.bloqueo);
     const fuentesReserva = new Set(reservas.map((e) => e.fuente));
     if (fuentesReserva.size > 1) return { estado: 'choque', eventos: ahi };
-    if (reservas.length) return { estado: 'reservado', fuente: reservas[0].fuente, eventos: ahi };
+    if (reservas.length) return { estado: 'reservado', fuente: reservas[0].fuente, clave: reservas[0].clave, eventos: ahi };
     // Todo es "no disponible". Booking marca así incluso sus propias reservas, y los ecos de
-    // otras plataformas ya habrían aparecido como reserva; si está Booking, la noche es de Booking.
+    // otras plataformas ya habrían aparecido como reserva; si está Booking, es reserva de Booking.
     const deBooking = ahi.find((e) => e.fuente === 'booking');
-    return { estado: 'bloqueado', fuente: (deBooking || ahi[0]).fuente, eventos: ahi };
+    if (deBooking) return { estado: 'reservado', fuente: 'booking', clave: deBooking.clave, eventos: ahi };
+    return { estado: 'bloqueado', fuente: ahi[0].fuente, eventos: ahi };
+  }
+
+  function seCruzan(a, b) { return a.start < b.end && b.start < a.end; }
+
+  // Reservas (no ecos ni cierres) que llegan entre 'desde' (incluido) y 'hasta' (excluido).
+  function estadias(habitaciones, cache, directas, desde, hasta) {
+    const out = [];
+    for (const h of habitaciones) {
+      const ev = eventosDe(h.id, cache, directas);
+      const vistas = new Set();
+      for (const e of ev) {
+        if (e.start < desde || e.start >= hasta || vistas.has(e.clave)) continue;
+        const esReserva = !e.bloqueo || (e.fuente === 'booking' && !ev.some((o) => o.fuente !== 'booking' && !o.bloqueo && seCruzan(o, e)));
+        if (!esReserva) continue;
+        vistas.add(e.clave);
+        out.push({ clave: e.clave, hab: h, fuente: e.fuente, start: e.start, end: e.end, noches: diffDays(e.start, e.end), id: e.id });
+      }
+    }
+    return out.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  }
+
+  const COMISIONES = { airbnb: 15, booking: 15, expedia: 18, directa: 0 };
+
+  // Nombre y valor de una reserva: las directas los guardan en sí mismas; las de plataformas, en 'detalles'.
+  function detalleDe(est, detalles, directas) {
+    if (est.fuente === 'directa') {
+      const d = (directas || []).find((x) => 'd:' + x.id === est.clave) || {};
+      return { nombre: d.nombre || '', monto: Number(d.monto) || 0 };
+    }
+    const d = (detalles || {})[est.clave] || {};
+    return { nombre: d.nombre || '', monto: Number(d.monto) || 0 };
+  }
+
+  // Ganancias de las reservas que llegan en el período. Comisiones en %.
+  function ganancias(habitaciones, cache, directas, detalles, comisiones, desde, hasta) {
+    const com = { ...COMISIONES, ...(comisiones || {}) };
+    const r = { estadias: [], bruto: 0, comision: 0, neto: 0, sinValor: 0, porFuente: {}, porHab: {}, nochesOcupadas: 0, nochesTotales: 0 };
+    for (const e of estadias(habitaciones, cache, directas, desde, hasta)) {
+      const det = detalleDe(e, detalles, directas);
+      const comision = Math.round(det.monto * (Number(com[e.fuente]) || 0) / 100);
+      const fila = { ...e, ...det, comision, neto: det.monto - comision };
+      r.estadias.push(fila);
+      if (!det.monto) { r.sinValor++; continue; }
+      r.bruto += det.monto; r.comision += comision; r.neto += fila.neto;
+      const pf = (r.porFuente[e.fuente] = r.porFuente[e.fuente] || { reservas: 0, bruto: 0, neto: 0 });
+      pf.reservas++; pf.bruto += det.monto; pf.neto += fila.neto;
+      const ph = (r.porHab[e.hab.id] = r.porHab[e.hab.id] || { hab: e.hab, reservas: 0, neto: 0 });
+      ph.reservas++; ph.neto += fila.neto;
+    }
+    const dias = diffDays(desde, hasta);
+    for (const h of habitaciones) {
+      const ev = eventosDe(h.id, cache, directas);
+      for (let i = 0; i < dias; i++) {
+        const st = estadoDia(ev, addDays(desde, i)).estado;
+        r.nochesTotales++;
+        if (st === 'reservado' || st === 'choque') r.nochesOcupadas++;
+      }
+    }
+    return r;
   }
 
   function grilla(habitaciones, cache, directas, desde, dias) {
@@ -146,14 +208,17 @@
   }
 
   // ---------- Datos guardados ----------
-  const VERSION = 1;
-  function nuevo() { return { v: VERSION, habitaciones: [], directas: [], cache: {} }; }
+  // v2: se agregan 'detalles' (nombre y valor por reserva) y 'comisiones'.
+  const VERSION = 2;
+  function nuevo() { return { v: VERSION, habitaciones: [], directas: [], cache: {}, detalles: {}, comisiones: { ...COMISIONES } }; }
   function migrate(s) {
     if (!s || typeof s !== 'object') return nuevo();
     const out = { ...nuevo(), ...s };
     out.habitaciones = Array.isArray(out.habitaciones) ? out.habitaciones : [];
     out.directas = Array.isArray(out.directas) ? out.directas : [];
     out.cache = out.cache && typeof out.cache === 'object' ? out.cache : {};
+    out.detalles = out.detalles && typeof out.detalles === 'object' ? out.detalles : {};
+    out.comisiones = { ...COMISIONES, ...(out.comisiones && typeof out.comisiones === 'object' ? out.comisiones : {}) };
     out.v = VERSION;
     return out;
   }
@@ -215,7 +280,7 @@
     return lineas.join('\r\n');
   }
 
-  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, migrate, nuevo, VERSION, enlaceValido, esSimulado, enlaceSimulado, icsSimulado };
+  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, estadias, ganancias, detalleDe, COMISIONES, migrate, nuevo, VERSION, enlaceValido, esSimulado, enlaceSimulado, icsSimulado };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Motor = api;
 })(typeof self !== 'undefined' ? self : this);

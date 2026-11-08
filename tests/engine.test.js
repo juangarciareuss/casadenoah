@@ -113,6 +113,11 @@ t('migrate nunca pierde datos y arregla lo dañado', () => {
   assert.strictEqual(s.habitaciones.length, 1);
   assert.deepStrictEqual(s.directas, []);
   assert.strictEqual(s.v, M.VERSION);
+  assert.deepStrictEqual(s.detalles, {});
+  assert.strictEqual(s.comisiones.booking, 15);
+  const v1 = M.migrate({ v: 1, habitaciones: [{ id: 'h' }], directas: [{ id: 'd', hab: 'h', start: '2026-01-01', end: '2026-01-02', nombre: 'X' }], cache: { h: {} } });
+  assert.strictEqual(v1.directas[0].nombre, 'X', 'los datos de la versión 1 se mantienen');
+  assert.strictEqual(M.migrate({ comisiones: { airbnb: 3 } }).comisiones.airbnb, 3);
 });
 
 t('solo acepta enlaces de las plataformas', () => {
@@ -125,13 +130,15 @@ t('solo acepta enlaces de las plataformas', () => {
   assert.ok(!M.enlaceValido('no es enlace'));
 });
 
-t('noche solo "cerrada" con Booking presente es de Booking', () => {
+t('noche solo "cerrada" con Booking presente es reserva de Booking', () => {
   const ev = [
     { start: '2026-12-01', end: '2026-12-03', fuente: 'airbnb', bloqueo: true },
     { start: '2026-12-01', end: '2026-12-03', fuente: 'booking', bloqueo: true },
   ];
   const e = M.estadoDia(ev, '2026-12-02');
-  assert.deepStrictEqual([e.estado, e.fuente], ['bloqueado', 'booking']);
+  assert.deepStrictEqual([e.estado, e.fuente], ['reservado', 'booking']);
+  const solo = M.estadoDia([{ start: '2026-12-01', end: '2026-12-03', fuente: 'airbnb', bloqueo: true }], '2026-12-01');
+  assert.strictEqual(solo.estado, 'bloqueado', 'cerrado a mano en Airbnb no es reserva');
 });
 
 t('enlaces simulados: válidos, estables y con una doble reserva visible', () => {
@@ -160,6 +167,32 @@ t('llegadas y salidas de Booking aunque diga "cerrado"', () => {
   assert.deepStrictEqual(M.resumenDia(h, c, [], '2026-12-01').llegadas.map((x) => x.fuente), ['booking']);
   assert.deepStrictEqual(M.resumenDia(h, c, [], '2026-12-03').salidas.map((x) => x.fuente), ['booking']);
   assert.strictEqual(M.resumenDia(h, c, [], '2026-12-02').llegadas.length, 0);
+});
+
+t('estadías: sin ecos y con Booking aunque diga cerrado', () => {
+  const c = { h1: {
+    airbnb: { eventos: [{ start: '2026-12-01', end: '2026-12-03', summary: 'Reserved' }, { start: '2026-12-05', end: '2026-12-07', summary: 'Airbnb (Not available)' }] },
+    booking: { eventos: [{ start: '2026-12-01', end: '2026-12-03', summary: 'CLOSED - Not available' }, { start: '2026-12-05', end: '2026-12-07', summary: 'CLOSED - Not available' }] },
+  } };
+  const d = [{ id: 'x', hab: 'h1', start: '2026-12-10', end: '2026-12-11', nombre: 'Ana Prueba', monto: 50000 }];
+  const est = M.estadias([{ id: 'h1', nombre: 'P' }], c, d, '2026-12-01', '2027-01-01');
+  assert.deepStrictEqual(est.map((e) => [e.fuente, e.start, e.noches]), [['airbnb', '2026-12-01', 2], ['booking', '2026-12-05', 2], ['directa', '2026-12-10', 1]]);
+});
+
+t('ganancias: bruto, comisión, neto y ocupación', () => {
+  const habs = [{ id: 'h1', nombre: 'P1' }, { id: 'h2', nombre: 'P2' }];
+  const c = { h1: { airbnb: { eventos: [{ start: '2026-12-01', end: '2026-12-03', summary: 'Reserved' }] }, booking: { eventos: [{ start: '2026-12-20', end: '2026-12-22', summary: 'CLOSED - Not available' }] } } };
+  const d = [{ id: 'x', hab: 'h2', start: '2026-12-10', end: '2026-12-11', nombre: 'Ana Prueba', monto: 50000 }];
+  const det = { 'h1|airbnb|2026-12-01|2026-12-03': { nombre: 'Luis Prueba', monto: 100000 } };
+  const g = M.ganancias(habs, c, d, det, { airbnb: 10 }, '2026-12-01', '2027-01-01');
+  assert.strictEqual(g.bruto, 150000);
+  assert.strictEqual(g.comision, 10000);
+  assert.strictEqual(g.neto, 140000);
+  assert.strictEqual(g.sinValor, 1, 'la de Booking no tiene valor');
+  assert.strictEqual(g.porFuente.airbnb.neto, 90000);
+  assert.strictEqual(g.porHab.h2.neto, 50000);
+  assert.deepStrictEqual([g.nochesOcupadas, g.nochesTotales], [5, 62]);
+  assert.strictEqual(g.estadias.find((e) => e.fuente === 'airbnb').nombre, 'Luis Prueba');
 });
 
 console.log(`${ok} pruebas pasaron`);

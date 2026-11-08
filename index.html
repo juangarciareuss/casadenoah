@@ -16,6 +16,7 @@
     <nav id="tabs">
       <button data-tab="calendario" class="on">Calendario</button>
       <button data-tab="buscar">Buscar libre</button>
+      <button data-tab="ganancias">Ganancias</button>
       <button data-tab="directas">Reservas directas</button>
       <button data-tab="config">Habitaciones y enlaces</button>
     </nav>
@@ -62,13 +63,34 @@
       <div id="resultadoBuscar"></div>
     </section>
 
+    <section id="tab-ganancias" class="tab" hidden>
+      <div class="barra">
+        <button id="gPrev" title="Mes anterior">←</button>
+        <h2 id="gMes" class="mes"></h2>
+        <button id="gNext" title="Mes siguiente">→</button>
+        <button id="gHoy">Este mes</button>
+      </div>
+      <div id="gTarjetas" class="tarjetas"></div>
+      <p id="gAviso" class="aviso" hidden></p>
+      <div class="dos-col"><div id="gFuentes"></div><div id="gHabs"></div></div>
+      <h3>Reservas que llegan este mes</h3>
+      <p class="suave">Escribe el nombre y el valor total que pagó cada visitante. Las plataformas no los mandan en el calendario.</p>
+      <div id="gLista"></div>
+      <details class="ayuda">
+        <summary>Comisión que cobra cada plataforma</summary>
+        <p class="suave">Valores aproximados. Revisa en cada plataforma cuánto te cobran y ajústalo aquí.</p>
+        <div id="gComisiones" class="fila"></div>
+      </details>
+    </section>
+
     <section id="tab-directas" class="tab" hidden>
       <h2>Reservas directas (teléfono, WhatsApp, en persona)</h2>
       <form id="formDirecta" class="fila">
         <label>Habitación <select id="dHab" required></select></label>
         <label>Llegada <input type="date" id="dLlegada" required></label>
         <label>Salida <input type="date" id="dSalida" required></label>
-        <label>Nombre o nota <input type="text" id="dNombre" maxlength="60" placeholder="Opcional"></label>
+        <label>Nombre del visitante <input type="text" id="dNombre" maxlength="60" placeholder="Opcional"></label>
+        <label>Valor total <input type="text" id="dMonto" inputmode="numeric" placeholder="$0"></label>
         <button class="primario">Anotar</button>
       </form>
       <p id="dAviso" class="aviso" hidden></p>
