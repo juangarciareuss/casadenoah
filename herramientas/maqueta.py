@@ -32,6 +32,7 @@ window.confirm = function () {{ return true; }};
 
 out = f'''<title>Casa de Noah · Disponibilidad</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap">
 <style>
 {css}
 </style>

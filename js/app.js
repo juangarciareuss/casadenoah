@@ -248,7 +248,7 @@
     const cab = fechas.map((f) => {
       const dt = new Date(f + 'T12:00'); const dow = dt.getDay();
       const mes = MESES[dt.getMonth()]; const mostrarMes = mes !== mesPrev; mesPrev = mes;
-      return `<th class="${f === hoy ? 'hoy' : ''} ${dow === 0 || dow === 6 ? 'finde' : ''}">${DIAS_SEM[dow]}<br><b>${dt.getDate()}</b>${mostrarMes ? '<br>' + mes : ''}</th>`;
+      return `<th class="${f === hoy ? 'hoy' : ''} ${dow === 0 || dow === 6 ? 'finde' : ''}">${DIAS_SEM[dow]}<b>${dt.getDate()}</b><small>${mostrarMes ? mes : '&nbsp;'}</small></th>`;
     }).join('');
     const filas = g.map((fila) => {
       let tds = '';
