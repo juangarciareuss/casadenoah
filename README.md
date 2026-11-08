@@ -12,6 +12,10 @@ Instrucciones para la dueña: `LEEME.txt`.
 
 En Mac o Linux, con Node.js instalado: `node servidor.js`.
 
+## Maqueta para mostrar
+
+`python3 herramientas/maqueta.py` arma `maqueta.html`: todo en un solo archivo, con fotos y reservas inventadas, para mostrar el sistema con un enlace sin instalar nada.
+
 ## Probar sin enlaces reales
 
 En "Habitaciones y enlaces", el botón "Usar enlaces simulados" llena los enlaces vacíos con calendarios inventados (con una doble reserva a propósito). "Quitar enlaces simulados" los borra y deja los reales.

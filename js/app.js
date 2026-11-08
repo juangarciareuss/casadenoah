@@ -4,6 +4,10 @@
   const M = window.Motor;
   const CLAVE = 'casadenoah';
   const HABS_CASA = ['Cabaña', 'Roble', 'Raulí', 'Arrayán', 'Lingue', 'Ciprés'];
+  // Fotos de las habitaciones (carpeta img). La maqueta las reemplaza por fotos incrustadas.
+  const FOTOS = window.FOTOS_CASA || { 'Cabaña': 'img/cabana.jpg', Roble: 'img/roble.jpg', 'Raulí': 'img/rauli.jpg', 'Arrayán': 'img/arrayan.jpg', Lingue: 'img/lingue.jpg', 'Ciprés': 'img/cipres.jpg' };
+  const fotoDe = (h) => FOTOS[h.nombre] || '';
+  const MAQUETA = !!window.MAQUETA;
   const DIAS_SEM = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const AUTO_MIN = 30;
@@ -25,7 +29,24 @@
   const CAB = { 'X-Casa-Noah': '1' };
 
   // Lee los datos: primero el archivo del computador; si no existe, lo que había en el navegador.
+  function ejemploMaqueta() {
+    const hoy = M.hoyLocal();
+    const habitaciones = HABS_CASA.map((n, i) => ({ id: 'm' + i, nombre: n, enlaces: { airbnb: M.enlaceSimulado('airbnb', i), booking: M.enlaceSimulado('booking', i), expedia: M.enlaceSimulado('expedia', i) } }));
+    // Una reserva directa de ejemplo, en las primeras dos noches libres de Lingue desde la próxima semana.
+    const cache = { m4: {} };
+    for (const f of ['airbnb', 'booking', 'expedia']) cache.m4[f] = { eventos: M.parseICS(M.icsSimulado(habitaciones[4].enlaces[f], hoy)) };
+    let d = 7;
+    while (d < 60 && !M.libres([habitaciones[4]], cache, [], M.addDays(hoy, d), M.addDays(hoy, d + 2)).length) d++;
+    const directas = [{ id: 'md1', hab: 'm4', start: M.addDays(hoy, d), end: M.addDays(hoy, d + 2), nombre: 'Reserva por WhatsApp (ejemplo)' }];
+    return M.migrate({ habitaciones, cache: {}, directas });
+  }
+
   async function cargar() {
+    if (MAQUETA) {
+      enArchivo = true;
+      try { const g = JSON.parse(localStorage.getItem(CLAVE + '-maqueta')); if (g && g.habitaciones && g.habitaciones.length) return M.migrate(g); } catch (e) { /* sin datos */ }
+      return ejemploMaqueta();
+    }
     let local = null;
     try { local = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { /* sin datos en el navegador */ }
     try {
@@ -51,6 +72,7 @@
   function guardar() {
     if (demo) return;
     const txt = JSON.stringify(S);
+    if (MAQUETA) { try { localStorage.setItem(CLAVE + '-maqueta', txt); } catch (e) { /* solo en memoria */ } return; }
     try { localStorage.setItem(CLAVE, txt); } catch (e) { /* el archivo es la copia principal */ }
     if (!enArchivo) return;
     colaGuardar = colaGuardar.then(async () => {
@@ -125,7 +147,11 @@
       : ultima ? `Actualizado ${ultima.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}${nErr ? ` · ${nErr} enlace(s) con problema` : ''}`
       : hayHabs ? 'Sin actualizar todavía' : '';
     const haySim = !demo && S.habitaciones.some((h) => Object.values(h.enlaces || {}).some(M.esSimulado));
-    $('#avisoSimulado').hidden = !haySim;
+    $('#avisoSimulado').hidden = !haySim || MAQUETA;
+    $('#avisoMaqueta').hidden = !MAQUETA;
+    $('#btnDemo').hidden = MAQUETA;
+    $('#btnRespaldo').hidden = MAQUETA;
+    $('#lblRestaurar').hidden = MAQUETA;
     $('#btnSimular').hidden = !!demo || !S.habitaciones.length;
     $('#btnQuitarSim').hidden = !haySim;
     $('#avisoGuardado').hidden = !avisoGuardado || !!demo;
@@ -181,7 +207,8 @@
         const f = M.FUENTES[c.fuente];
         return `<td class="ocupado${hoyc}" style="background:${f.color}" data-h="${fila.hab.id}" data-f="${c.fecha}" title="${f.nombre}">${f.nombre[0]}</td>`;
       }).join('');
-      return `<tr class="${errores[fila.hab.id] ? 'err' : ''}"><th class="hab">${esc(fila.hab.nombre)}</th>${tds}</tr>`;
+      const f = fotoDe(fila.hab);
+      return `<tr class="${errores[fila.hab.id] ? 'err' : ''}"><th class="hab"><button class="nombre-hab" data-ver-hab="${fila.hab.id}">${f ? `<img src="${f}" alt="">` : ''}<span>${esc(fila.hab.nombre)}</span></button></th>${tds}</tr>`;
     }).join('');
     $('#grilla').innerHTML = `<thead><tr><th class="hab"></th>${cab}</tr></thead><tbody>${filas}</tbody>`;
   }
@@ -203,6 +230,27 @@
     $('#dlg').showModal();
   }
 
+  function verHabitacion(habId) {
+    const d = D(); const h = d.habitaciones.find((x) => x.id === habId); if (!h) return;
+    const hoy = M.hoyLocal();
+    const ev = M.eventosDe(h.id, d.cache, d.directas);
+    // Próximas estadías: noches seguidas ocupadas, agrupadas.
+    const tramos = []; let actual = null;
+    for (let i = 0; i < 45; i++) {
+      const f = M.addDays(hoy, i); const e = M.estadoDia(ev, f);
+      if (e.estado === 'libre') { actual = null; continue; }
+      if (actual && actual.fuente === e.fuente && actual.estado === e.estado) { actual.hasta = M.addDays(f, 1); continue; }
+      actual = { desde: f, hasta: M.addDays(f, 1), fuente: e.fuente || 'directa', estado: e.estado }; tramos.push(actual);
+    }
+    const libresMes = Array.from({ length: 30 }, (_, i) => M.estadoDia(ev, M.addDays(hoy, i)).estado === 'libre').filter(Boolean).length;
+    $('#dlgBody').innerHTML = `${fotoDe(h) ? `<img class="foto-grande" src="${fotoDe(h)}" alt="Foto de ${esc(h.nombre)}">` : ''}
+      <h2>${esc(h.nombre)}</h2>
+      <p>${libresMes} noches libres en los próximos 30 días.</p>
+      <h3>Próximas reservas</h3>
+      ${tramos.length ? `<ul class="tramos">${tramos.slice(0, 8).map((t) => `<li>${t.estado === 'choque' ? '<span class="pill" style="background:var(--choque)">Doble reserva</span>' : pill(t.fuente)} ${fechaLarga(t.desde)} → ${fechaLarga(t.hasta)}</li>`).join('')}</ul>` : '<p class="suave">Sin reservas en las próximas semanas.</p>'}`;
+    $('#dlg').showModal();
+  }
+
   // ---------- Reservas directas ----------
   function renderDirectas() {
     const d = D();
@@ -210,7 +258,7 @@
     const hoy = M.hoyLocal();
     const prox = d.directas.filter((x) => x.end >= hoy).sort((a, b) => (a.start < b.start ? -1 : 1));
     $('#listaDirectas').innerHTML = prox.length
-      ? `<table class="lista"><tr><th>Habitación</th><th>Llegada</th><th>Salida</th><th>Nombre o nota</th><th></th></tr>${prox.map((x) => `<tr><td>${esc(nombreHab(x.hab))}</td><td>${fechaLarga(x.start)}</td><td>${fechaLarga(x.end)}</td><td>${esc(x.nombre)}</td><td><button class="peligro" data-borrar-directa="${x.id}">Borrar</button></td></tr>`).join('')}</table>`
+      ? `<div class="lista-wrap"><table class="lista"><tr><th>Habitación</th><th>Llegada</th><th>Salida</th><th>Nombre o nota</th><th></th></tr>${prox.map((x) => `<tr><td>${esc(nombreHab(x.hab))}</td><td>${fechaLarga(x.start)}</td><td>${fechaLarga(x.end)}</td><td>${esc(x.nombre)}</td><td><button class="peligro" data-borrar-directa="${x.id}">Borrar</button></td></tr>`).join('')}</table></div>`
       : '<p class="suave">No hay reservas directas próximas.</p>';
   }
 
@@ -228,7 +276,7 @@
             : c ? `${M.FUENTES[f].nombre}: ${c.eventos.length} fechas leídas` : `${M.FUENTES[f].nombre}: pendiente`;
         }).filter(Boolean).join(' · ');
         return `<div class="hab-card" data-hab="${h.id}">
-          <label>Nombre <input data-campo="nombre" value="${esc(h.nombre)}" maxlength="40"></label>
+          <label>${fotoDe(h) ? `<img class="mini" src="${fotoDe(h)}" alt="">` : ''}Nombre <input data-campo="nombre" value="${esc(h.nombre)}" maxlength="40"></label>
           ${['airbnb', 'booking', 'expedia'].map((f) => `<label>Enlace ${M.FUENTES[f].nombre} <input data-campo="${f}" value="${esc((h.enlaces || {})[f] || '')}" placeholder="https://…"></label>`).join('')}
           <button class="peligro" data-borrar-hab="${h.id}">Quitar</button>
           <div class="estado">${est || 'Sin enlaces todavía.'}</div>
@@ -298,7 +346,7 @@
     const libres = M.libres(d.habitaciones, d.cache, d.directas, a, b);
     const n = M.diffDays(a, b);
     $('#resultadoBuscar').innerHTML = libres.length
-      ? `<p>Para ${n} noche${n === 1 ? '' : 's'} (${fechaLarga(a)} → ${fechaLarga(b)}) están libres:</p><ul>${libres.map((h) => `<li class="libre-ok">${esc(h.nombre)}</li>`).join('')}</ul>`
+      ? `<p>Para ${n} noche${n === 1 ? '' : 's'} (${fechaLarga(a)} → ${fechaLarga(b)}) están libres:</p><div class="fichas">${libres.map((h) => `<button class="ficha" data-ver-hab="${h.id}">${fotoDe(h) ? `<img src="${fotoDe(h)}" alt="">` : ''}<span class="libre-ok">${esc(h.nombre)}</span></button>`).join('')}</div>`
       : `<p class="aviso">No hay ninguna habitación libre todas esas noches.</p>`;
   });
 
@@ -318,6 +366,8 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target;
+    const ver = t.closest && t.closest('[data-ver-hab]');
+    if (ver) { verHabitacion(ver.dataset.verHab); return; }
     if (t.dataset.borrarDirecta && !demo && confirm('¿Borrar esta reserva directa?')) {
       S.directas = S.directas.filter((x) => x.id !== t.dataset.borrarDirecta); guardar(); render();
     }
@@ -337,6 +387,9 @@
     S.habitaciones.push({ id: uid(), nombre: 'Habitación ' + (S.habitaciones.length + 1), enlaces: {} }); guardar(); render();
   });
 
+  $('#btnReiniciar').addEventListener('click', () => {
+    S = ejemploMaqueta(); errores = {}; guardar(); irTab('calendario'); actualizar();
+  });
   $('#btnSimular').addEventListener('click', () => {
     let n = 0;
     S.habitaciones.forEach((h, i) => {

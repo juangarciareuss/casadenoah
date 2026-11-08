@@ -27,6 +27,7 @@
   </div>
 
   <div id="avisoGuardado" class="banner rojo" hidden></div>
+  <div id="avisoMaqueta" class="banner" hidden><span>Maqueta de demostración: las reservas son inventadas. Puedes tocar todo sin afectar nada real.</span> <button id="btnReiniciar">Volver a empezar</button></div>
   <div id="avisoSimulado" class="banner" hidden>Hay enlaces simulados: esas reservas son inventadas, solo para probar. Cámbialos por los reales en "Habitaciones y enlaces".</div>
 
   <main>
@@ -92,7 +93,7 @@
         <button id="btnSimular">Usar enlaces simulados (para probar)</button>
         <button id="btnQuitarSim" class="peligro">Quitar enlaces simulados</button>
         <button id="btnRespaldo">Descargar respaldo</button>
-        <label class="boton">Restaurar respaldo <input type="file" id="fileRespaldo" accept="application/json" hidden></label>
+        <label class="boton" id="lblRestaurar">Restaurar respaldo <input type="file" id="fileRespaldo" accept="application/json" hidden></label>
       </div>
       <p class="suave">Todo queda guardado en este computador, en la carpeta "datos" del programa. Descarga un respaldo de vez en cuando (por ejemplo a un pendrive o a tu correo).</p>
     </section>

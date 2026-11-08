@@ -1,69 +1,122 @@
+/* Casa de Noah: tonos de bosque y madera de Pucón. Grilla de disponibilidad como pieza central. */
 [hidden] { display: none !important; }
 :root {
-  --bg: #f6f4ef; --card: #fff; --ink: #222; --suave: #6b6b6b; --linea: #e3dfd6;
-  --acento: #1f6f5c; --libre: #e9f6ee; --libre-ink: #2e7d4f; --choque: #c62828; --bloq: #c9c4b8;
+  --bg: #f3f2ec; --card: #ffffff; --ink: #1f2420; --suave: #5f665f; --linea: #dfe0d6;
+  --acento: #1f6f5c; --acento-ink: #ffffff; --acento-suave: #e2efe9;
+  --libre: #e6f3ea; --libre-ink: #2a7a4b; --choque: #c62828;
+  --aviso-bg: #fff3d1; --aviso-ink: #4a3a00; --alerta-bg: #fdecea; --alerta-ink: #7f1d1d; --alerta-linea: #f3c4c0;
+  --finde: #8a5a00; --sombra: rgba(0, 0, 0, .18);
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --marca: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141815; --card: #1d221e; --ink: #e8ebe6; --suave: #a3aba3; --linea: #323a33;
+    --acento: #4fb393; --acento-ink: #0d1a14; --acento-suave: #233a31;
+    --libre: #1f3327; --libre-ink: #7fd3a0; --choque: #e5534b;
+    --aviso-bg: #3a3214; --aviso-ink: #f3e3a8; --alerta-bg: #3d1d1b; --alerta-ink: #ffc9c4; --alerta-linea: #6b2b27;
+    --finde: #e0b35c; --sombra: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141815; --card: #1d221e; --ink: #e8ebe6; --suave: #a3aba3; --linea: #323a33;
+  --acento: #4fb393; --acento-ink: #0d1a14; --acento-suave: #233a31;
+  --libre: #1f3327; --libre-ink: #7fd3a0; --choque: #e5534b;
+  --aviso-bg: #3a3214; --aviso-ink: #f3e3a8; --alerta-bg: #3d1d1b; --alerta-ink: #ffc9c4; --alerta-linea: #6b2b27;
+  --finde: #e0b35c; --sombra: rgba(0, 0, 0, .6);
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-button, select, input { font: inherit; }
+body { margin: 0; font: 15px/1.45 var(--fuente); background: var(--bg); color: var(--ink); }
+button, select, input { font: inherit; color: inherit; }
 button { cursor: pointer; border: 1px solid var(--linea); background: var(--card); border-radius: 8px; padding: 7px 14px; }
-button:hover { border-color: #bbb; }
-button.primario { background: var(--acento); color: #fff; border-color: var(--acento); }
+button:hover { border-color: var(--suave); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+button.primario { background: var(--acento); color: var(--acento-ink); border-color: var(--acento); }
 button.peligro { color: var(--choque); }
 button:disabled { opacity: .5; cursor: wait; }
-input, select { border: 1px solid var(--linea); border-radius: 8px; padding: 6px 8px; background: #fff; }
-h1 { font-size: 22px; margin: 0; }
-h2 { font-size: 18px; margin: 4px 0 14px; }
+input, select { border: 1px solid var(--linea); border-radius: 8px; padding: 6px 8px; background: var(--card); min-width: 0; }
+h1 { font: 600 24px/1.1 var(--marca); margin: 0; letter-spacing: .2px; }
+h2 { font-size: 18px; margin: 4px 0 14px; text-wrap: balance; }
+h3 { font-size: 15px; margin: 14px 0 6px; }
 .suave { color: var(--suave); font-size: 13px; }
 
-.top { display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: var(--card); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+.top { display: flex; align-items: center; gap: 12px 24px; padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--card); border-bottom: 1px solid var(--linea); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; flex-wrap: wrap; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--card); }
 .marca { display: flex; flex-direction: column; }
-#tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+#tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; min-width: 0; }
 #tabs button { border: none; background: none; padding: 8px 12px; border-radius: 8px; }
-#tabs button.on { background: #e7f0ec; color: var(--acento); font-weight: 600; }
+#tabs button.on { background: var(--acento-suave); color: var(--acento); font-weight: 600; }
 
-main { padding: 18px 24px 40px; max-width: 1600px; margin: 0 auto; }
-.banner { background: #fff4d6; padding: 8px 24px; display: flex; gap: 12px; align-items: center; }
-.tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+main { padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1600px; margin: 0 auto; display: grid; gap: 14px; }
+main > * { min-width: 0; }
+.banner { background: var(--aviso-bg); color: var(--aviso-ink); padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
+.banner.rojo { background: var(--alerta-bg); color: var(--alerta-ink); }
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .tarjeta { background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; }
-.tarjeta .num { font-size: 28px; font-weight: 700; }
+.tarjeta .num { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .tarjeta .det { font-size: 13px; color: var(--suave); }
-.alerta { background: #fdecea; color: #7f1d1d; border: 1px solid #f5c2c0; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
-.aviso { background: #fff4d6; border-radius: 8px; padding: 8px 12px; }
-.tab { background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 16px; }
+#alertas { display: grid; gap: 10px; }
+#alertas:empty { display: none; }
+.alerta { background: var(--alerta-bg); color: var(--alerta-ink); border: 1px solid var(--alerta-linea); border-radius: 10px; padding: 10px 14px; }
+.aviso { background: var(--aviso-bg); color: var(--aviso-ink); border-radius: 8px; padding: 8px 12px; }
+.tab { background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 16px; min-width: 0; }
 .barra { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
-.leyenda { display: flex; gap: 14px; margin-left: auto; font-size: 13px; flex-wrap: wrap; }
+.leyenda { display: flex; gap: 6px 14px; margin-left: auto; font-size: 13px; flex-wrap: wrap; }
 .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 .fila { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 10px 0; }
 .fila label { display: flex; flex-direction: column; font-size: 13px; color: var(--suave); gap: 3px; }
 .centro { justify-content: center; }
-label.boton { display: inline-block; border: 1px solid var(--linea); border-radius: 8px; padding: 7px 14px; cursor: pointer; color: var(--ink); font-size: 15px; background: #fff; }
+label.boton { display: inline-block; border: 1px solid var(--linea); border-radius: 8px; padding: 7px 14px; cursor: pointer; color: var(--ink); font-size: 15px; background: var(--card); }
 
 .grilla-wrap { overflow-x: auto; }
 #grilla { border-collapse: separate; border-spacing: 2px; width: 100%; }
-#grilla th { font-size: 12px; font-weight: 500; color: var(--suave); padding: 2px; text-align: center; min-width: 34px; }
+#grilla th { font-size: 12px; font-weight: 500; color: var(--suave); padding: 2px; text-align: center; min-width: 34px; font-variant-numeric: tabular-nums; }
 #grilla th.hoy { color: var(--acento); font-weight: 700; }
-#grilla th.finde { color: #8a5a00; }
-#grilla th.hab { text-align: left; min-width: 130px; color: var(--ink); font-size: 14px; font-weight: 600; position: sticky; left: 0; background: var(--card); padding-right: 8px; }
-#grilla td { height: 34px; border-radius: 5px; text-align: center; font-size: 11px; color: #fff; cursor: pointer; }
+#grilla th.finde { color: var(--finde); }
+#grilla th.hab { text-align: left; min-width: 130px; color: var(--ink); font-size: 14px; font-weight: 600; position: sticky; left: 0; background: var(--card); padding-right: 8px; z-index: 1; }
+#grilla td { height: 36px; border-radius: 5px; text-align: center; font-size: 11px; color: #fff; cursor: pointer; }
 #grilla td.libre { background: var(--libre); }
 #grilla td.libre:hover { outline: 2px solid var(--libre-ink); }
-#grilla td.bloqueado, .leyenda i.rayado { background: repeating-linear-gradient(45deg, var(--c), var(--c) 4px, color-mix(in srgb, var(--c) 45%, white) 4px, color-mix(in srgb, var(--c) 45%, white) 8px); }
+#grilla td.bloqueado, .leyenda i.rayado { background: repeating-linear-gradient(45deg, var(--c), var(--c) 4px, color-mix(in srgb, var(--c) 45%, var(--card)) 4px, color-mix(in srgb, var(--c) 45%, var(--card)) 8px); }
 #grilla td.choque { background: var(--choque); font-weight: 700; }
 #grilla td.hoycol { box-shadow: inset 0 0 0 2px var(--acento); }
 #grilla tr.err th.hab::after { content: " ⚠"; color: var(--choque); }
 
 .hab-card { border: 1px solid var(--linea); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: grid; grid-template-columns: 200px 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
-.hab-card label { display: flex; flex-direction: column; font-size: 13px; color: var(--suave); gap: 3px; }
+.hab-card label { display: flex; flex-direction: column; font-size: 13px; color: var(--suave); gap: 3px; min-width: 0; }
 .hab-card .estado { grid-column: 1 / -1; font-size: 12px; color: var(--suave); }
 .hab-card .estado .mal { color: var(--choque); }
 @media (max-width: 900px) { .hab-card { grid-template-columns: 1fr; } }
 
+.lista-wrap { overflow-x: auto; }
 table.lista { border-collapse: collapse; width: 100%; }
 table.lista td, table.lista th { border-bottom: 1px solid var(--linea); padding: 8px; text-align: left; }
 .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; color: #fff; font-size: 12px; }
 .libre-ok { color: var(--libre-ink); font-weight: 600; }
-.vacio { text-align: center; background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 40px; }
-dialog { border: none; border-radius: 12px; padding: 20px; max-width: 460px; box-shadow: 0 10px 40px rgba(0,0,0,.2); }
+.vacio { text-align: center; background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 40px 16px; }
+dialog { border: 1px solid var(--linea); border-radius: 12px; padding: 20px; width: min(460px, calc(100vw - 32px)); background: var(--card); color: var(--ink); box-shadow: 0 10px 40px var(--sombra); }
+dialog::backdrop { background: rgba(0, 0, 0, .45); }
 dialog form { text-align: right; margin-top: 14px; }
-.banner.rojo { background: #fdecea; color: #7f1d1d; }
+.nombre-hab { display: flex; align-items: center; gap: 8px; border: none; background: none; padding: 0; font-weight: 600; color: inherit; text-align: left; }
+.nombre-hab img { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; flex: none; }
+.nombre-hab:hover span { text-decoration: underline; }
+.fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.ficha { display: flex; flex-direction: column; gap: 6px; padding: 0 0 10px; overflow: hidden; text-align: left; }
+.ficha img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.ficha span { padding: 0 10px; }
+img.mini { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin-bottom: 4px; }
+img.foto-grande { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+.tramos { padding-left: 18px; display: grid; gap: 6px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; max-width: calc(100vw - 32px); z-index: 20; }
+
+@media (max-width: 600px) {
+  h1 { font-size: 21px; }
+  #btnActualizar { width: 100%; }
+  #tabs { order: 3; flex-basis: 100%; }
+  #tabs button { padding: 6px 9px; font-size: 14px; }
+  .leyenda { margin-left: 0; }
+  #grilla th.hab { min-width: 104px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
