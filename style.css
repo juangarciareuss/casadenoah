@@ -66,3 +66,4 @@ table.lista td, table.lista th { border-bottom: 1px solid var(--linea); padding:
 .vacio { text-align: center; background: var(--card); border: 1px solid var(--linea); border-radius: 12px; padding: 40px; }
 dialog { border: none; border-radius: 12px; padding: 20px; max-width: 460px; box-shadow: 0 10px 40px rgba(0,0,0,.2); }
 dialog form { text-align: right; margin-top: 14px; }
+.banner.rojo { background: #fdecea; color: #7f1d1d; }

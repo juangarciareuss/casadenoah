@@ -1,12 +1,28 @@
 # Casa de Noah · Disponibilidad
 
-Página para el computador que junta en un solo calendario las reservas de Airbnb, Booking y Expedia de las habitaciones de Casa de Noah, más las reservas directas.
+Programa para el computador que junta en un solo calendario las reservas de Airbnb, Booking y Expedia de las habitaciones de Casa de Noah (Pucón), más las reservas directas. Funciona sin instalar nada y sin publicar nada en internet.
+
+## Cómo se usa (Windows)
+
+1. En GitHub: **Code → Download ZIP**. En el computador, clic derecho al ZIP → **Extraer todo**.
+2. Doble clic en **Abrir Casa de Noah**. Se abre en el navegador.
+3. Deja abierta la ventanita minimizada "Casa de Noah (no cerrar)" mientras se usa.
+
+Instrucciones para la dueña: `LEEME.txt`.
+
+En Mac o Linux, con Node.js instalado: `node servidor.js`.
+
+## Qué hace
 
 - Lee el calendario (iCal) que exporta cada plataforma, cada 30 minutos o con "Actualizar ahora".
 - Avisa si dos plataformas vendieron la misma noche.
 - Busca qué habitaciones están libres para unas fechas.
-- Los datos quedan guardados solo en el navegador de ese computador (hay botón de respaldo).
+- Guarda todo en `datos/datos.json` dentro de la carpeta del programa (con copia en `datos-anterior.json`). Esa carpeta no se sube a GitHub.
 
-Archivos: `js/engine.js` (lógica, con pruebas en `tests/engine.test.js`), `js/app.js` (pantallas), `netlify/functions/calendario.js` (trae los calendarios; solo acepta enlaces de las plataformas).
+## Archivos
 
-Pruebas: `node tests/engine.test.js`
+- `js/engine.js`: lógica, con pruebas en `tests/engine.test.js`.
+- `js/app.js`: pantallas.
+- `servidor.ps1` (Windows) y `servidor.js` (Mac/Linux y pruebas): el programa local. Muestran la página en `http://localhost:8642`, traen los calendarios (solo de las plataformas) y guardan los datos. Deben hacer lo mismo.
+
+Pruebas: `node tests/engine.test.js && node tests/servidor.test.js`

@@ -8,7 +8,9 @@
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const AUTO_MIN = 30;
 
-  let S = cargar();
+  let S = M.nuevo();
+  let enArchivo = false; // true cuando el programa local guarda en datos/datos.json
+  let avisoGuardado = '';
   let demo = null; // datos de ejemplo en memoria, nunca se guardan
   let desde = M.addDays(M.hoyLocal(), -1);
   let errores = {}; // habId -> { fuente: mensaje }
@@ -20,16 +22,47 @@
   const D = () => demo || S;
   const uid = () => Math.random().toString(36).slice(2, 9);
 
-  function cargar() {
+  const CAB = { 'X-Casa-Noah': '1' };
+
+  // Lee los datos: primero el archivo del computador; si no existe, lo que había en el navegador.
+  async function cargar() {
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { /* sin datos en el navegador */ }
     try {
-      const raw = JSON.parse(localStorage.getItem(CLAVE));
-      if (raw && raw.v > M.VERSION) alert('Estos datos son de una versión más nueva. Recarga la página.');
-      return M.migrate(raw);
-    } catch (e) { return M.nuevo(); }
+      const r = await fetch('/datos', { headers: CAB, cache: 'no-store' });
+      enArchivo = true;
+      if (r.ok) return revisarVersion(await r.json());
+      if (r.status !== 404) throw new Error('Error ' + r.status);
+      const s = revisarVersion(local);
+      if (local) { S = s; guardar(); } // pasa lo del navegador al archivo
+      return s;
+    } catch (e) {
+      enArchivo = false;
+      avisoGuardado = 'Abre Casa de Noah con el archivo "Abrir Casa de Noah". Así se guarda en el computador y se leen los calendarios.';
+      return revisarVersion(local);
+    }
   }
+  function revisarVersion(raw) {
+    if (raw && raw.v > M.VERSION) alert('Estos datos son de una versión más nueva del programa. Descarga la versión nueva.');
+    return M.migrate(raw);
+  }
+
+  let colaGuardar = Promise.resolve();
   function guardar() {
     if (demo) return;
-    try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) { alert('No se pudo guardar en este computador.'); }
+    const txt = JSON.stringify(S);
+    try { localStorage.setItem(CLAVE, txt); } catch (e) { /* el archivo es la copia principal */ }
+    if (!enArchivo) return;
+    colaGuardar = colaGuardar.then(async () => {
+      try {
+        const r = await fetch('/datos', { method: 'POST', headers: { ...CAB, 'Content-Type': 'application/json' }, body: txt });
+        if (!r.ok) throw new Error();
+        if (avisoGuardado) { avisoGuardado = ''; render(); }
+      } catch (e) {
+        avisoGuardado = 'No se pudo guardar en el computador. ¿Se cerró la ventana de Casa de Noah? Vuelve a abrirla.';
+        render();
+      }
+    });
   }
 
   function fechaLarga(f) { const d = new Date(f + 'T12:00'); return `${DIAS_SEM[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`; }
@@ -38,7 +71,7 @@
 
   // ---------- Traer calendarios ----------
   async function actualizar() {
-    if (demo || actualizando) return;
+    if (demo || actualizando || !enArchivo) return;
     const tareas = [];
     for (const h of S.habitaciones) {
       for (const fuente of ['airbnb', 'booking', 'expedia']) {
@@ -53,7 +86,7 @@
     errores = {};
     await Promise.all(tareas.map(async ({ h, fuente, url }) => {
       try {
-        const r = await fetch('/.netlify/functions/calendario?url=' + encodeURIComponent(url));
+        const r = await fetch('/calendario?url=' + encodeURIComponent(url), { headers: CAB });
         const txt = await r.text();
         if (!r.ok) throw new Error(txt || 'Error ' + r.status);
         const eventos = M.parseICS(txt);
@@ -87,6 +120,8 @@
     $('#actualizado').textContent = demo ? 'Datos de ejemplo'
       : ultima ? `Actualizado ${ultima.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}${nErr ? ` · ${nErr} enlace(s) con problema` : ''}`
       : hayHabs ? 'Sin actualizar todavía' : '';
+    $('#avisoGuardado').hidden = !avisoGuardado || !!demo;
+    $('#avisoGuardado').textContent = avisoGuardado;
     renderResumen(); renderAlertas(); renderGrilla(); renderDirectas(); renderConfig(); renderLeyenda();
   }
 
@@ -311,8 +346,7 @@
   });
 
   // ---------- Inicio ----------
-  render();
-  actualizar();
+  cargar().then((datos) => { S = datos; render(); actualizar(); });
   setInterval(() => { if (!document.hidden) actualizar(); }, AUTO_MIN * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && ultima && Date.now() - ultima > AUTO_MIN * 60 * 1000) actualizar(); });
 })();

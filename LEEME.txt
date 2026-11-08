@@ -1,0 +1,25 @@
+CASA DE NOAH - Calendario de disponibilidad
+===========================================
+
+CÓMO ABRIRLO
+1. Haz doble clic en "Abrir Casa de Noah".
+2. Se abre sola en el navegador. También aparece una ventana pequeña
+   minimizada abajo: NO la cierres mientras uses el programa.
+3. Para cerrar el programa, cierra esa ventana pequeña.
+
+La primera vez Windows puede decir "Windows protegió su PC".
+Toca "Más información" y luego "Ejecutar de todas formas".
+
+Truco: clic derecho en "Abrir Casa de Noah" > Enviar a > Escritorio
+(crear acceso directo). Así queda en el escritorio.
+
+PRIMERA VEZ
+1. Entra a "Habitaciones y enlaces".
+2. Toca "Cargar las 6 de Casa de Noah".
+3. En cada habitación pega el enlace de calendario de Airbnb, Booking
+   y Expedia. Ahí mismo explica dónde encontrar cada enlace.
+
+TUS DATOS
+Quedan guardados en la carpeta "datos", dentro de esta misma carpeta.
+No borres esa carpeta. Si cambias de computador, copia la carpeta
+completa del programa (con "datos" adentro).
