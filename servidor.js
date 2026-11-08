@@ -43,6 +43,20 @@ function guardarDatos(txt) {
   fs.writeFileSync(tmp, txt, 'utf8');
   if (fs.existsSync(ARCHIVO)) fs.copyFileSync(ARCHIVO, path.join(CARPETA_DATOS, 'datos-anterior.json'));
   fs.renameSync(tmp, ARCHIVO);
+  respaldoDelDia();
+}
+
+// Una copia por día en datos/respaldos (se guardan las últimas 30).
+const DIAS_RESPALDO = 30;
+function respaldoDelDia() {
+  const dir = path.join(CARPETA_DATOS, 'respaldos');
+  fs.mkdirSync(dir, { recursive: true });
+  const d = new Date();
+  const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const destino = path.join(dir, `datos-${hoy}.json`);
+  if (!fs.existsSync(destino)) fs.copyFileSync(ARCHIVO, destino);
+  const viejos = fs.readdirSync(dir).filter((f) => /^datos-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().reverse().slice(DIAS_RESPALDO);
+  for (const f of viejos) fs.unlinkSync(path.join(dir, f));
 }
 
 const servidor = http.createServer(async (req, res) => {

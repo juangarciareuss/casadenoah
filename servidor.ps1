@@ -78,6 +78,16 @@ function Guardar-Datos([string]$txt) {
   [IO.File]::WriteAllText($tmp, $txt, $Utf8)
   if (Test-Path $Archivo) { Copy-Item $Archivo (Join-Path $CarpetaDatos 'datos-anterior.json') -Force }
   Move-Item $tmp $Archivo -Force
+  Respaldo-Del-Dia
+}
+
+# Una copia por día en datos\respaldos (se guardan las últimas 30).
+function Respaldo-Del-Dia {
+  $dir = Join-Path $CarpetaDatos 'respaldos'
+  if (-not (Test-Path $dir)) { $null = New-Item -ItemType Directory -Path $dir }
+  $destino = Join-Path $dir ('datos-' + (Get-Date -Format 'yyyy-MM-dd') + '.json')
+  if (-not (Test-Path $destino)) { Copy-Item $Archivo $destino }
+  Get-ChildItem $dir -Filter 'datos-*.json' | Sort-Object Name -Descending | Select-Object -Skip 30 | Remove-Item -Force
 }
 
 $l = New-Object Net.HttpListener

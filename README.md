@@ -25,7 +25,8 @@ En "Habitaciones y enlaces", el botón "Usar enlaces simulados" llena los enlace
 - Lee el calendario (iCal) que exporta cada plataforma, cada 30 minutos o con "Actualizar ahora".
 - Avisa si dos plataformas vendieron la misma noche.
 - Busca qué habitaciones están libres para unas fechas.
-- Guarda todo en `datos/datos.json` dentro de la carpeta del programa (con copia en `datos-anterior.json`). Esa carpeta no se sube a GitHub.
+- Guarda todo en `datos/datos.json` dentro de la carpeta del programa (con copia en `datos-anterior.json` y una copia diaria en `datos/respaldos`, las últimas 30). Esa carpeta no se sube a GitHub.
+- Nombre, valor, teléfono y notas de cada visitante; ganancias del mes por plataforma y por habitación, y planilla para Excel.
 
 ## Archivos
 

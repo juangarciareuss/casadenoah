@@ -22,7 +22,7 @@ fotos_js = '{' + ','.join(f'"{k}":"{data_uri(v)}"' for k, v in fotos.items()) + 
 
 pre = f'''window.MAQUETA = true;
 window.FOTOS_CASA = {fotos_js};
-// En la maqueta no hay ventanas de alerta: se muestran como aviso abajo y las confirmaciones se aceptan.
+// En la maqueta el navegador no muestra ventanas de alerta: por si alguna queda, se ve como aviso abajo.
 window.alert = function (msg) {{
   const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 4000);

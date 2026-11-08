@@ -69,6 +69,7 @@
         <h2 id="gMes" class="mes"></h2>
         <button id="gNext" title="Mes siguiente">→</button>
         <button id="gHoy">Este mes</button>
+        <button id="gExcel" class="a-la-derecha">Descargar para Excel</button>
       </div>
       <div id="gTarjetas" class="tarjetas"></div>
       <p id="gAviso" class="aviso" hidden></p>
@@ -129,6 +130,11 @@
       </div>
     </section>
   </main>
+
+  <dialog id="dlgPregunta" class="pregunta">
+    <p id="pTexto"></p>
+    <div class="fila derecha"><button id="pNo">Cancelar</button><button id="pSi" class="primario">Sí</button></div>
+  </dialog>
 
   <dialog id="dlg"><div id="dlgBody"></div><form method="dialog"><button>Cerrar</button></form></dialog>
 

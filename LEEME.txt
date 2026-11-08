@@ -21,5 +21,7 @@ PRIMERA VEZ
 
 TUS DATOS
 Quedan guardados en la carpeta "datos", dentro de esta misma carpeta.
+Cada día se guarda una copia en "datos\respaldos" (las últimas 30).
+Si algo se borra por error, ahí está la copia del día anterior.
 No borres esa carpeta. Si cambias de computador, copia la carpeta
 completa del programa (con "datos" adentro).

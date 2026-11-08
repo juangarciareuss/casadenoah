@@ -114,16 +114,25 @@
     return out.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
   }
 
+  // Planilla para Excel (separada por punto y coma, como la usa Excel en Chile).
+  function csvGanancias(g) {
+    const c = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const filas = [['Llegada', 'Salida', 'Habitación', 'Origen', 'Visitante', 'Teléfono', 'Noches', 'Valor total', 'Comisión', 'Te queda', 'Notas']];
+    for (const e of g.estadias) filas.push([e.start, e.end, e.hab.nombre, FUENTES[e.fuente].nombre, e.nombre, e.telefono, e.noches, e.monto, e.comision, e.neto, e.notas]);
+    filas.push([], ['Total', '', '', '', '', '', '', g.bruto, g.comision, g.neto]);
+    return filas.map((f) => f.map(c).join(';')).join('\r\n');
+  }
+
   const COMISIONES = { airbnb: 15, booking: 15, expedia: 18, directa: 0 };
 
   // Nombre y valor de una reserva: las directas los guardan en sí mismas; las de plataformas, en 'detalles'.
   function detalleDe(est, detalles, directas) {
     if (est.fuente === 'directa') {
       const d = (directas || []).find((x) => 'd:' + x.id === est.clave) || {};
-      return { nombre: d.nombre || '', monto: Number(d.monto) || 0 };
+      return { nombre: d.nombre || '', monto: Number(d.monto) || 0, telefono: d.telefono || '', notas: d.notas || '' };
     }
     const d = (detalles || {})[est.clave] || {};
-    return { nombre: d.nombre || '', monto: Number(d.monto) || 0 };
+    return { nombre: d.nombre || '', monto: Number(d.monto) || 0, telefono: d.telefono || '', notas: d.notas || '' };
   }
 
   // Ganancias de las reservas que llegan en el período. Comisiones en %.
@@ -198,11 +207,11 @@
       if (hoyE.estado === 'libre') r.libres++; else r.ocupadas++;
       // Llega: una reserva empieza hoy, o la pieza pasa de libre a ocupada (Booking solo dice "cerrado").
       const empieza = ev.find((e) => !e.bloqueo && e.start === dia);
-      if (empieza) r.llegadas.push({ hab: h, fuente: empieza.fuente });
-      else if (hoyE.estado !== 'libre' && ayerE.estado === 'libre') r.llegadas.push({ hab: h, fuente: hoyE.fuente });
+      if (empieza) r.llegadas.push({ hab: h, fuente: empieza.fuente, clave: empieza.clave });
+      else if (hoyE.estado !== 'libre' && ayerE.estado === 'libre') r.llegadas.push({ hab: h, fuente: hoyE.fuente, clave: hoyE.clave });
       const termina = ev.find((e) => !e.bloqueo && e.end === dia);
-      if (termina) r.salidas.push({ hab: h, fuente: termina.fuente });
-      else if (ayerE.estado !== 'libre' && hoyE.estado === 'libre') r.salidas.push({ hab: h, fuente: ayerE.fuente });
+      if (termina) r.salidas.push({ hab: h, fuente: termina.fuente, clave: termina.clave });
+      else if (ayerE.estado !== 'libre' && hoyE.estado === 'libre') r.salidas.push({ hab: h, fuente: ayerE.fuente, clave: ayerE.clave });
     }
     return r;
   }
@@ -280,7 +289,7 @@
     return lineas.join('\r\n');
   }
 
-  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, estadias, ganancias, detalleDe, COMISIONES, migrate, nuevo, VERSION, enlaceValido, esSimulado, enlaceSimulado, icsSimulado };
+  const api = { FUENTES, DOMINIOS, addDays, diffDays, hoyLocal, parseICS, esBloqueo, eventosDe, estadoDia, grilla, libres, choques, resumenDia, estadias, ganancias, detalleDe, csvGanancias, COMISIONES, migrate, nuevo, VERSION, enlaceValido, esSimulado, enlaceSimulado, icsSimulado };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Motor = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -195,4 +195,23 @@ t('ganancias: bruto, comisión, neto y ocupación', () => {
   assert.strictEqual(g.estadias.find((e) => e.fuente === 'airbnb').nombre, 'Luis Prueba');
 });
 
+t('llegadas traen la clave de la reserva para mostrar el nombre', () => {
+  const c = { h1: { airbnb: { eventos: [{ start: '2026-12-01', end: '2026-12-03', summary: 'Reserved' }] } } };
+  const r = M.resumenDia([{ id: 'h1', nombre: 'P' }], c, [], '2026-12-01');
+  assert.strictEqual(r.llegadas[0].clave, 'h1|airbnb|2026-12-01|2026-12-03');
+  const det = M.detalleDe(r.llegadas[0], { [r.llegadas[0].clave]: { nombre: 'Ana Prueba', telefono: '+56 9 0000 0000' } }, []);
+  assert.deepStrictEqual([det.nombre, det.telefono, det.notas], ['Ana Prueba', '+56 9 0000 0000', '']);
+});
+
+t('planilla para Excel', () => {
+  const habs = [{ id: 'h1', nombre: 'Raulí' }];
+  const d = [{ id: 'x', hab: 'h1', start: '2026-12-10', end: '2026-12-12', nombre: 'Ana; "Prueba"', monto: 100000, notas: 'Llega tarde' }];
+  const csv = M.csvGanancias(M.ganancias(habs, {}, d, {}, {}, '2026-12-01', '2027-01-01'));
+  const lineas = csv.split('\r\n');
+  assert.strictEqual(lineas[0].split(';')[2], 'Habitación');
+  assert.ok(lineas[1].includes('"Ana; ""Prueba""' + '"'));
+  assert.ok(lineas[1].endsWith(';2;100000;0;100000;Llega tarde'));
+  assert.ok(lineas[lineas.length - 1].startsWith('Total;'));
+});
+
 console.log(`${ok} pruebas pasaron`);

@@ -34,6 +34,20 @@
     const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
     document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
   }
+  // Pregunta dentro de la página (las ventanas del navegador no funcionan en todas partes).
+  function preguntar(msg, si = 'Sí') {
+    return new Promise((ok) => {
+      const dlg = $('#dlgPregunta');
+      $('#pTexto').textContent = msg; $('#pSi').textContent = si;
+      const fin = (v) => { dlg.close(); $('#pSi').onclick = $('#pNo').onclick = null; ok(v); };
+      $('#pSi').onclick = () => fin(true); $('#pNo').onclick = () => fin(false);
+      dlg.oncancel = () => fin(false);
+      dlg.showModal();
+    });
+  }
+  // "Camila Rojas Pérez" -> "Camila R." para que quepa en las barras cortas.
+  const nombreCorto = (n) => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0]} ${p[1][0]}.` : p[0] || ''; };
+  const iniciales = (n) => String(n || '').trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   const leerMonto = (txt) => Number(String(txt || '').replace(/\D/g, '')) || 0;
 
   // ---------- Datos de ejemplo (inventados) ----------
@@ -97,7 +111,7 @@
     }
   }
   function revisarVersion(raw) {
-    if (raw && raw.v > M.VERSION) alert('Estos datos son de una versión más nueva del programa. Descarga la versión nueva.');
+    if (raw && raw.v > M.VERSION) avisar('Estos datos son de una versión más nueva del programa. Descarga la versión nueva.');
     return M.migrate(raw);
   }
 
@@ -206,7 +220,7 @@
     const d = D(); const hoy = M.hoyLocal();
     const r = M.resumenDia(d.habitaciones, d.cache, d.directas, hoy);
     const r7 = Array.from({ length: 7 }, (_, i) => M.resumenDia(d.habitaciones, d.cache, d.directas, M.addDays(hoy, i)).libres);
-    const lista = (xs) => xs.length ? xs.map((x) => esc(x.hab.nombre)).join(', ') : 'Ninguna';
+    const lista = (xs) => xs.length ? xs.map((x) => { const n = M.detalleDe(x, d.detalles, d.directas).nombre; return `${n ? esc(nombreCorto(n)) + ' · ' : ''}${esc(x.hab.nombre)}`; }).join('<br>') : 'Nadie';
     $('#resumen').innerHTML = `
       <div class="tarjeta"><div class="det">Libres esta noche</div><div class="num">${r.libres} <span class="det">de ${d.habitaciones.length}</span></div></div>
       <div class="tarjeta"><div class="det">Llegan hoy</div><div class="num">${r.llegadas.length}</div><div class="det">${lista(r.llegadas)}</div></div>
@@ -253,7 +267,9 @@
         const det = M.detalleDe(est, d.detalles, d.directas);
         const fu = M.FUENTES[c.fuente];
         const texto = det.nombre || 'Sin nombre';
-        tds += `<td class="ocupado" colspan="${n}" style="--c:${fu.color}" ${datos} title="${esc(texto)} · ${fu.nombre}${det.monto ? ' · ' + plata(det.monto) : ''}"><span class="${det.nombre ? '' : 'sin'}">${esc(texto)}</span></td>`;
+        // 1 noche: iniciales; 2 noches: nombre y letra del apellido; más: nombre completo.
+        const visible = !det.nombre ? texto : n === 1 ? iniciales(det.nombre) : n === 2 ? nombreCorto(det.nombre) : texto;
+        tds += `<td class="ocupado" colspan="${n}" style="--c:${fu.color}" ${datos} title="${esc(texto)} · ${fu.nombre}${det.monto ? ' · ' + plata(det.monto) : ''}"><span class="${det.nombre ? '' : 'sin'}">${esc(visible)}</span></td>`;
         i += n - 1;
       }
       const f = fotoDe(fila.hab);
@@ -274,6 +290,8 @@
       <p>${pill(est.fuente)} ${fechaLarga(est.start)} → ${fechaLarga(est.end)} · ${noches} noche${noches === 1 ? '' : 's'}</p>
       <label>Nombre del visitante <input name="nombre" value="${esc(det.nombre)}" maxlength="60" placeholder="Ej.: María Pérez"></label>
       <label>Valor total que pagó <input name="monto" inputmode="numeric" value="${det.monto ? plata(det.monto) : ''}" placeholder="$0"></label>
+      <label>Teléfono <input name="telefono" type="tel" value="${esc(det.telefono)}" maxlength="30" placeholder="Opcional"></label>
+      <label>Notas <textarea name="notas" rows="2" maxlength="300" placeholder="Ej.: llega tarde, viene con mascota">${esc(det.notas)}</textarea></label>
       <p class="suave calculo">${det.monto ? `Comisión ${fu.nombre} ${com}%: ${plata(Math.round(det.monto * com / 100))} · Te queda: <b>${plata(det.monto - Math.round(det.monto * com / 100))}</b>` : `Comisión de ${fu.nombre}: ${com}%.`}</p>
       <button class="primario">Guardar</button>
     </form>`;
@@ -284,10 +302,12 @@
     const clave = form.dataset.clave;
     const nombre = form.nombre.value.trim();
     const monto = leerMonto(form.monto.value);
+    const telefono = form.telefono.value.trim();
+    const notas = form.notas.value.trim();
     if (clave.startsWith('d:')) {
       const r = d.directas.find((x) => 'd:' + x.id === clave);
-      if (r) { r.nombre = nombre; r.monto = monto; }
-    } else if (nombre || monto) d.detalles[clave] = { nombre, monto };
+      if (r) Object.assign(r, { nombre, monto, telefono, notas });
+    } else if (nombre || monto || telefono || notas) d.detalles[clave] = { nombre, monto, telefono, notas };
     else delete d.detalles[clave];
     guardar(); render();
     $('#dlg').close();
@@ -326,13 +346,14 @@
       <h2>${esc(h.nombre)}</h2>
       <p>${libresMes} noches libres en los próximos 30 días.</p>
       <h3>Próximas reservas</h3>
-      ${proximas.length ? `<ul class="tramos">${proximas.slice(0, 8).map((t) => { const det = M.detalleDe(t, d.detalles, d.directas); return `<li>${pill(t.fuente)} ${fechaLarga(t.start)} → ${fechaLarga(t.end)} · ${esc(det.nombre || 'Sin nombre')}${det.monto ? ' · ' + plata(det.monto) : ''}</li>`; }).join('')}</ul>` : '<p class="suave">Sin reservas en las próximas semanas.</p>'}`;
+      ${proximas.length ? `<ul class="tramos">${proximas.slice(0, 8).map((t) => { const det = M.detalleDe(t, d.detalles, d.directas); return `<li>${pill(t.fuente)} ${fechaLarga(t.start)} → ${fechaLarga(t.end)} · ${esc(det.nombre || 'Sin nombre')}${det.monto ? ' · ' + plata(det.monto) : ''}${det.telefono ? `<br><span class="suave">Tel.: ${esc(det.telefono)}</span>` : ''}${det.notas ? `<br><span class="suave">${esc(det.notas)}</span>` : ''}</li>`; }).join('')}</ul>` : '<p class="suave">Sin reservas en las próximas semanas.</p>'}`;
     $('#dlg').showModal();
   }
 
   // ---------- Ganancias ----------
   const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   let mesOffset = 0;
+  let ultimoMes = null;
   function rangoMes(off) {
     const h = new Date(); const dt = new Date(h.getFullYear(), h.getMonth() + off, 1);
     const a = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-01`;
@@ -363,6 +384,8 @@
         <td class="num">${e.noches}</td>
         <td><input class="en-linea monto ${e.monto ? '' : 'vacio-monto'}" data-editar="monto" inputmode="numeric" value="${e.monto ? plata(e.monto) : ''}" placeholder="Falta el valor"></td>
         <td class="num">${e.monto ? plata(e.neto) : '—'}</td></tr>`).join('')}</table></div>` : '<p class="suave">No hay reservas que lleguen este mes.</p>';
+    $('#gExcel').hidden = MAQUETA;
+    ultimoMes = { g, a };
     $('#gComisiones').innerHTML = ['airbnb', 'booking', 'expedia'].map((f) => `<label>${M.FUENTES[f].nombre} <span class="con-sufijo"><input type="number" min="0" max="50" step="0.5" data-comision="${f}" value="${d.comisiones[f]}">%</span></label>`).join('');
   }
 
@@ -414,13 +437,13 @@
   }
 
   function cambiarCampo(input) {
-    if (demo) { alert('En el ejemplo no se guardan cambios. Sal del ejemplo primero.'); render(); return; }
+    if (demo) { avisar('En el ejemplo no se guardan cambios. Sal del ejemplo primero.'); render(); return; }
     const card = input.closest('[data-hab]');
     const h = S.habitaciones.find((x) => x.id === card.dataset.hab);
     const campo = input.dataset.campo; const val = input.value.trim();
     if (campo === 'nombre') { h.nombre = val || 'Sin nombre'; }
     else {
-      if (val && !M.enlaceValido(val) && !M.esSimulado(val)) { alert('Ese enlace no parece de ' + M.FUENTES[campo].nombre + '. Debe empezar con https:// y ser de la plataforma.'); input.value = (h.enlaces || {})[campo] || ''; return; }
+      if (val && !M.enlaceValido(val) && !M.esSimulado(val)) { avisar('Ese enlace no parece de ' + M.FUENTES[campo].nombre + '. Debe empezar con https:// y ser de la plataforma.'); input.value = (h.enlaces || {})[campo] || ''; return; }
       h.enlaces = h.enlaces || {}; h.enlaces[campo] = val;
     }
     guardar(); render();
@@ -457,13 +480,13 @@
       : `<p class="aviso">No hay ninguna habitación libre todas esas noches.</p>`;
   });
 
-  $('#formDirecta').addEventListener('submit', (e) => {
+  $('#formDirecta').addEventListener('submit', async (e) => {
     e.preventDefault();
     const S0 = D();
     const r = { id: uid(), hab: $('#dHab').value, start: $('#dLlegada').value, end: $('#dSalida').value, nombre: $('#dNombre').value.trim(), monto: leerMonto($('#dMonto').value) };
-    if (r.end <= r.start) { alert('La salida debe ser después de la llegada.'); return; }
+    if (r.end <= r.start) { avisar('La salida debe ser después de la llegada.'); return; }
     const ocupada = !M.libres(S0.habitaciones.filter((h) => h.id === r.hab), S0.cache, S0.directas, r.start, r.end).length;
-    if (ocupada && !confirm('Esa habitación ya está ocupada alguna de esas noches. ¿Anotar igual?')) return;
+    if (ocupada && !(await preguntar('Esa habitación ya está ocupada alguna de esas noches. ¿Anotar igual?', 'Anotar igual'))) return;
     S0.directas.push(r); guardar();
     $('#formDirecta').reset();
     $('#dAviso').hidden = false;
@@ -471,18 +494,18 @@
     render();
   });
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     const t = e.target;
     const ir = t.closest && t.closest('[data-ir]');
     if (ir) { irTab(ir.dataset.ir); return; }
     const ver = t.closest && t.closest('[data-ver-hab]');
     if (ver) { verHabitacion(ver.dataset.verHab); return; }
-    if (t.dataset.borrarDirecta && !demo && confirm('¿Borrar esta reserva directa?')) {
+    if (t.dataset.borrarDirecta && !demo && await preguntar('¿Borrar esta reserva directa?', 'Borrar')) {
       S.directas = S.directas.filter((x) => x.id !== t.dataset.borrarDirecta); guardar(); render();
     }
     if (t.dataset.borrarHab && !demo) {
       const h = S.habitaciones.find((x) => x.id === t.dataset.borrarHab);
-      if (confirm(`¿Quitar la habitación ${h.nombre}?`)) {
+      if (await preguntar(`¿Quitar la habitación ${h.nombre}? Se borran sus enlaces.`, 'Quitar')) {
         S.habitaciones = S.habitaciones.filter((x) => x.id !== h.id); delete S.cache[h.id]; guardar(); render();
       }
     }
@@ -493,6 +516,14 @@
   $('#gPrev').addEventListener('click', () => { mesOffset--; renderGanancias(); });
   $('#gNext').addEventListener('click', () => { mesOffset++; renderGanancias(); });
   $('#gHoy').addEventListener('click', () => { mesOffset = 0; renderGanancias(); });
+  $('#gExcel').addEventListener('click', () => {
+    if (!ultimoMes) return;
+    const blob = new Blob(['\ufeff' + M.csvGanancias(ultimoMes.g)], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `casa-de-noah-ganancias-${ultimoMes.a.slice(0, 7)}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    avisar('Planilla descargada. Ábrela con Excel.');
+  });
   $('#tab-ganancias').addEventListener('change', (e) => {
     if (e.target.dataset.editar) editarEnLinea(e.target);
     if (e.target.dataset.comision) { const v = Math.min(50, Math.max(0, Number(e.target.value) || 0)); D().comisiones[e.target.dataset.comision] = v; guardar(); render(); }
@@ -500,11 +531,12 @@
   document.addEventListener('submit', (e) => { if (e.target.classList.contains('form-reserva')) { e.preventDefault(); guardarReserva(e.target); } });
   $('#listaHabs').addEventListener('change', (e) => { if (e.target.dataset.campo) cambiarCampo(e.target); });
   $('#btnAgregarHab').addEventListener('click', () => {
-    if (demo) { alert('En el ejemplo no se guardan cambios.'); return; }
+    if (demo) { avisar('En el ejemplo no se guardan cambios.'); return; }
     S.habitaciones.push({ id: uid(), nombre: 'Habitación ' + (S.habitaciones.length + 1), enlaces: {} }); guardar(); render();
   });
 
-  $('#btnReiniciar').addEventListener('click', () => {
+  $('#btnReiniciar').addEventListener('click', async () => {
+    if (!(await preguntar('¿Volver al ejemplo inicial? Se borra lo que anotaste en la maqueta.', 'Volver a empezar'))) return;
     S = ejemploCompleto(); errores = {}; guardar(); irTab('calendario');
   });
   $('#btnSimular').addEventListener('click', () => {
@@ -513,11 +545,11 @@
       h.enlaces = h.enlaces || {};
       for (const f of ['airbnb', 'booking', 'expedia']) if (!h.enlaces[f]) { h.enlaces[f] = M.enlaceSimulado(f, i); n++; }
     });
-    if (!n) { alert('Todas las habitaciones ya tienen sus 3 enlaces.'); return; }
+    if (!n) { avisar('Todas las habitaciones ya tienen sus 3 enlaces.'); return; }
     rellenarEjemplo(S); guardar(); render();
   });
-  $('#btnQuitarSim').addEventListener('click', () => {
-    if (!confirm('¿Quitar todos los enlaces simulados? Los enlaces reales se mantienen.')) return;
+  $('#btnQuitarSim').addEventListener('click', async () => {
+    if (!(await preguntar('¿Quitar todos los enlaces simulados? Los enlaces reales se mantienen.', 'Quitar'))) return;
     for (const h of S.habitaciones) for (const f of Object.keys(h.enlaces || {})) if (M.esSimulado(h.enlaces[f])) { h.enlaces[f] = ''; if (S.cache[h.id]) delete S.cache[h.id][f]; }
     guardar(); render();
   });
@@ -531,9 +563,9 @@
     const f = e.target.files[0]; if (!f) return;
     try {
       const datos = M.migrate(JSON.parse(await f.text()));
-      if (!confirm(`El respaldo tiene ${datos.habitaciones.length} habitaciones y ${datos.directas.length} reservas directas. ¿Reemplazar lo que hay ahora?`)) return;
+      if (!(await preguntar(`El respaldo tiene ${datos.habitaciones.length} habitaciones y ${datos.directas.length} reservas directas. ¿Reemplazar lo que hay ahora?`, 'Reemplazar'))) return;
       S = datos; demo = null; guardar(); render(); actualizar();
-    } catch (err) { alert('Ese archivo no es un respaldo válido.'); }
+    } catch (err) { avisar('Ese archivo no es un respaldo válido.'); }
     e.target.value = '';
   });
 

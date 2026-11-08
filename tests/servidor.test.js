@@ -44,6 +44,17 @@ async function t(nombre, fn) { try { await fn(); ok++; } catch (e) { console.err
       await fetch(BASE + '/datos', { method: 'POST', headers: CAB, body: JSON.stringify({ ...datos, directas: [1] }) });
       assert.ok(fs.existsSync(path.join(datosDir, 'datos-anterior.json')));
     });
+    await t('deja un respaldo del día y borra los de hace más de 30', async () => {
+      const dir = path.join(datosDir, 'respaldos');
+      for (let i = 1; i <= 35; i++) fs.writeFileSync(path.join(dir, `datos-2020-01-${String(i).padStart(2, '0')}.json`), '{}');
+      await fetch(BASE + '/datos', { method: 'POST', headers: CAB, body: JSON.stringify({ v: 2, habitaciones: [] }) });
+      const archivos = fs.readdirSync(dir).sort();
+      assert.strictEqual(archivos.length, 30);
+      const d = new Date();
+      const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      assert.ok(archivos.includes(`datos-${hoy}.json`));
+      assert.ok(!archivos.includes('datos-2020-01-01.json'));
+    });
     await t('no guarda basura ni pisa los datos', async () => {
       const antes = fs.readFileSync(path.join(datosDir, 'datos.json'), 'utf8');
       const r = await fetch(BASE + '/datos', { method: 'POST', headers: CAB, body: 'no es json' });
@@ -60,6 +71,7 @@ async function t(nombre, fn) { try { await fn(); ok++; } catch (e) { console.err
     const ps = fs.readFileSync(path.join(raiz, 'servidor.ps1'), 'utf8');
     const lista = /\$Dominios = @\(([^)]*)\)/.exec(ps)[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
     assert.deepStrictEqual(lista, M.DOMINIOS);
+    assert.match(ps, /function Respaldo-Del-Dia/, 'el servidor de Windows también hace respaldos');
     assert.strictEqual(ps.charCodeAt(0), 0xfeff, 'servidor.ps1 debe empezar con BOM para que Windows lea las tildes');
   });
   console.log(`${ok} pruebas del programa local pasaron`);

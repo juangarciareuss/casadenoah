@@ -84,7 +84,7 @@ label.boton { display: inline-block; border: 1px solid var(--linea); border-radi
 #grilla td.libre { background: var(--libre); }
 #grilla td.libre:hover { outline: 2px solid var(--libre-ink); }
 #grilla td.ocupado { background: var(--ocupado); color: var(--ocupado-ink); position: relative; text-align: left; padding: 0 6px 0 14px; font-size: 12px; }
-#grilla td.ocupado span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#grilla td.ocupado span { display: block; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #grilla td.ocupado span.sin { opacity: .7; font-style: italic; }
 #grilla td.ocupado::before, .leyenda i.muestra::before { content: ""; position: absolute; top: 0; left: 0; border-top: 11px solid var(--c); border-right: 11px solid transparent; border-top-left-radius: 5px; }
 #grilla td.ocupado:hover { filter: brightness(1.12); }
@@ -132,7 +132,7 @@ img.foto-grande { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit:
   .nombre-hab img { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-.tarjeta-boton { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.tarjeta-boton { text-align: left; font: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; }
 .tarjeta-boton:hover { border-color: var(--acento); }
 .tarjeta.destacada { background: var(--acento-suave); border-color: var(--acento); }
 .tarjeta.destacada .num { color: var(--acento); }
@@ -153,3 +153,8 @@ input.vacio-monto::placeholder, .falta { color: var(--choque); }
 .con-sufijo input { width: 80px; }
 details.ayuda { margin-top: 16px; }
 details.ayuda summary { cursor: pointer; font-weight: 600; }
+.form-reserva textarea { border: 1px solid var(--linea); border-radius: 8px; padding: 6px 8px; background: var(--card); font: inherit; color: inherit; resize: vertical; }
+dialog.pregunta { width: min(400px, calc(100vw - 32px)); }
+dialog.pregunta p { margin: 0 0 8px; font-size: 16px; }
+.fila.derecha { justify-content: flex-end; }
+.a-la-derecha { margin-left: auto; }
