@@ -3,10 +3,10 @@
 :root {
   --bg: #f3f2ec; --card: #ffffff; --ink: #1f2420; --suave: #5f665f; --linea: #dfe0d6;
   --acento: #1f6f5c; --acento-ink: #ffffff; --acento-suave: #e2efe9;
-  --libre: #e6f3ea; --libre-ink: #2a7a4b; --choque: #c62828;
+  --libre: #efe3cf; --libre-ink: #8a6235; --choque: #c62828;
   --aviso-bg: #fff3d1; --aviso-ink: #4a3a00; --alerta-bg: #fdecea; --alerta-ink: #7f1d1d; --alerta-linea: #f3c4c0;
   --finde: #8a5a00; --sombra: rgba(0, 0, 0, .18);
-  --ocupado: #6b5340; --ocupado-ink: #ffffff; --cerrado: #b9b6ac;
+  --ocupado: #2f7d55; --ocupado-ink: #ffffff; --cerrado: #b9b6ac;
   --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --marca: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
 }
@@ -14,20 +14,20 @@
   :root:not([data-theme="light"]) {
     --bg: #141815; --card: #1d221e; --ink: #e8ebe6; --suave: #a3aba3; --linea: #323a33;
     --acento: #4fb393; --acento-ink: #0d1a14; --acento-suave: #233a31;
-    --libre: #1f3327; --libre-ink: #7fd3a0; --choque: #e5534b;
+    --libre: #3a3024; --libre-ink: #d9b88a; --choque: #e5534b;
     --aviso-bg: #3a3214; --aviso-ink: #f3e3a8; --alerta-bg: #3d1d1b; --alerta-ink: #ffc9c4; --alerta-linea: #6b2b27;
     --finde: #e0b35c; --sombra: rgba(0, 0, 0, .6);
-    --ocupado: #8a6d55; --ocupado-ink: #ffffff; --cerrado: #4a4c47;
+    --ocupado: #3c9467; --ocupado-ink: #ffffff; --cerrado: #4a4c47;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141815; --card: #1d221e; --ink: #e8ebe6; --suave: #a3aba3; --linea: #323a33;
   --acento: #4fb393; --acento-ink: #0d1a14; --acento-suave: #233a31;
-  --libre: #1f3327; --libre-ink: #7fd3a0; --choque: #e5534b;
+  --libre: #3a3024; --libre-ink: #d9b88a; --choque: #e5534b;
   --aviso-bg: #3a3214; --aviso-ink: #f3e3a8; --alerta-bg: #3d1d1b; --alerta-ink: #ffc9c4; --alerta-linea: #6b2b27;
   --finde: #e0b35c; --sombra: rgba(0, 0, 0, .6);
-  --ocupado: #8a6d55; --ocupado-ink: #ffffff; --cerrado: #4a4c47;
+  --ocupado: #3c9467; --ocupado-ink: #ffffff; --cerrado: #4a4c47;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }

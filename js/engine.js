@@ -7,7 +7,7 @@
     airbnb: { nombre: 'Airbnb', color: '#e0565b' },
     booking: { nombre: 'Booking', color: '#2b6cd8' },
     expedia: { nombre: 'Expedia', color: '#d9a400' },
-    directa: { nombre: 'Directa', color: '#2e9e6a' },
+    directa: { nombre: 'Directa', color: '#8e5bc4' },
   };
 
   // ---------- Fechas ----------
