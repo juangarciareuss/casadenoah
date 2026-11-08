@@ -1,6 +1,7 @@
 /* Casa de Noah · Pucón
    Diseño: papel casi blanco, verdes de bosque y musgo, azul del lago Villarrica, arena para lo libre.
-   Encabezado con el volcán y araucarias; la grilla de disponibilidad es la pieza central. */
+   Encabezado con el volcán y araucarias; la grilla de disponibilidad es la pieza central.
+   Siempre en fondo blanco, aunque el equipo esté en modo oscuro (pedido de la dueña). */
 [hidden] { display: none !important; }
 :root {
   --bg: #fbfcfa; --card: #ffffff; --ink: #1c2b24; --suave: #61716a; --linea: #e3eae4; --linea-suave: #eef3ef;
@@ -10,32 +11,10 @@
   --aviso-bg: #f6f1df; --aviso-ink: #4e4419; --alerta-bg: #fcefec; --alerta-ink: #84251d; --alerta-linea: #f2cfc9;
   --finde: #a0703a; --sombra: rgba(28, 43, 36, .07); --sombra-fuerte: rgba(28, 43, 36, .22);
   --nieve: #ffffff;
+  color-scheme: light;
   --fuente: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --marca: "Young Serif", Georgia, "Iowan Old Style", serif;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1613; --card: #16201b; --ink: #e5eee8; --suave: #9fb0a7; --linea: #26332c; --linea-suave: #1d2822;
-    --acento: #6fbf95; --acento-ink: #0c1712; --acento-suave: #1f3329; --musgo: #5f7d52; --lago: #5c9fb3; --ceniza: #3d4d48;
-    --libre: #2c271f; --libre-borde: #3a3328; --libre-ink: #dcbd8f; --choque: #e5574c;
-    --ocupado: #3f8a63; --ocupado-ink: #ffffff; --cerrado: #3e4540;
-    --aviso-bg: #2d2a17; --aviso-ink: #eadf9f; --alerta-bg: #351b18; --alerta-ink: #ffc8c1; --alerta-linea: #5c2a24;
-    --finde: #dcae74; --sombra: rgba(0, 0, 0, .35); --sombra-fuerte: rgba(0, 0, 0, .7);
-    --nieve: #d6e2df;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1613; --card: #16201b; --ink: #e5eee8; --suave: #9fb0a7; --linea: #26332c; --linea-suave: #1d2822;
-  --acento: #6fbf95; --acento-ink: #0c1712; --acento-suave: #1f3329; --musgo: #5f7d52; --lago: #5c9fb3; --ceniza: #3d4d48;
-  --libre: #2c271f; --libre-borde: #3a3328; --libre-ink: #dcbd8f; --choque: #e5574c;
-  --ocupado: #3f8a63; --ocupado-ink: #ffffff; --cerrado: #3e4540;
-  --aviso-bg: #2d2a17; --aviso-ink: #eadf9f; --alerta-bg: #351b18; --alerta-ink: #ffc8c1; --alerta-linea: #5c2a24;
-  --finde: #dcae74; --sombra: rgba(0, 0, 0, .35); --sombra-fuerte: rgba(0, 0, 0, .7);
-  --nieve: #d6e2df;
-  color-scheme: dark;
-}
-
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.5 var(--fuente); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
 button, select, input, textarea { font: inherit; color: inherit; }

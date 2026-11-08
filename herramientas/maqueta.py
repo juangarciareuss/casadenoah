@@ -1,11 +1,14 @@
 """Arma maqueta.html: la página completa en un solo archivo, con reservas simuladas y fotos
 incrustadas, para mostrar el sistema con un enlace (sin instalar nada).
-Uso: python3 herramientas/maqueta.py [salida.html]"""
+Uso: python3 herramientas/maqueta.py [salida.html] [--en-blanco]
+--en-blanco: versión web vacía, sin reservas de ejemplo, para empezar a llenarla."""
 import base64, io, re, sys, pathlib
 from PIL import Image
 
 raiz = pathlib.Path(__file__).resolve().parent.parent
-salida = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else raiz / 'maqueta.html'
+args = [a for a in sys.argv[1:] if not a.startswith('--')]
+en_blanco = '--en-blanco' in sys.argv
+salida = pathlib.Path(args[0]) if args else raiz / 'maqueta.html'
 fotos = {'Cabaña': 'cabana', 'Roble': 'roble', 'Raulí': 'rauli', 'Arrayán': 'arrayan', 'Lingue': 'lingue', 'Ciprés': 'cipres'}
 
 def data_uri(nombre):
@@ -21,6 +24,7 @@ app = (raiz / 'js' / 'app.js').read_text(encoding='utf-8')
 fotos_js = '{' + ','.join(f'"{k}":"{data_uri(v)}"' for k, v in fotos.items()) + '}'
 
 pre = f'''window.MAQUETA = true;
+window.EN_BLANCO = {'true' if en_blanco else 'false'};
 window.FOTOS_CASA = {fotos_js};
 // En la maqueta el navegador no muestra ventanas de alerta: por si alguna queda, se ve como aviso abajo.
 window.alert = function (msg) {{
@@ -30,7 +34,8 @@ window.alert = function (msg) {{
 window.confirm = function () {{ return true; }};
 '''
 
-out = f'''<title>Casa de Noah · Disponibilidad</title>
+titulo = 'Casa de Noah' if en_blanco else 'Casa de Noah · Maqueta'
+out = f'''<title>{titulo}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap">
 <style>

@@ -8,6 +8,9 @@
   const FOTOS = window.FOTOS_CASA || { 'Cabaña': 'img/cabana.jpg', Roble: 'img/roble.jpg', 'Raulí': 'img/rauli.jpg', 'Arrayán': 'img/arrayan.jpg', Lingue: 'img/lingue.jpg', 'Ciprés': 'img/cipres.jpg' };
   const fotoDe = (h) => FOTOS[h.nombre] || '';
   const MAQUETA = !!window.MAQUETA;
+  // Versión web vacía: se usa desde un enlace, guarda en el navegador y parte sin reservas.
+  const EN_BLANCO = MAQUETA && !!window.EN_BLANCO;
+  const CLAVE_WEB = CLAVE + (EN_BLANCO ? '-web' : '-maqueta');
   const DIAS_SEM = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const AUTO_MIN = 30;
@@ -88,10 +91,15 @@
   }
 
   async function cargar() {
+    if (EN_BLANCO) {
+      enArchivo = true;
+      try { const g = JSON.parse(localStorage.getItem(CLAVE_WEB)); if (g) return revisarVersion(g); } catch (e) { /* sin datos */ }
+      return M.nuevo();
+    }
     if (MAQUETA) {
       enArchivo = true;
       // Las reservas simuladas se mueven con los días: si el ejemplo guardado es de otro día, se arma de nuevo.
-      try { const g = JSON.parse(localStorage.getItem(CLAVE + '-maqueta')); if (g && g.ejemploDia === M.hoyLocal() && g.v === M.VERSION) return M.migrate(g); } catch (e) { /* sin datos */ }
+      try { const g = JSON.parse(localStorage.getItem(CLAVE_WEB)); if (g && g.ejemploDia === M.hoyLocal() && g.v === M.VERSION) return M.migrate(g); } catch (e) { /* sin datos */ }
       return ejemploCompleto();
     }
     let local = null;
@@ -119,7 +127,7 @@
   function guardar() {
     if (demo) return;
     const txt = JSON.stringify(S);
-    if (MAQUETA) { try { localStorage.setItem(CLAVE + '-maqueta', txt); } catch (e) { /* solo en memoria */ } return; }
+    if (MAQUETA) { try { localStorage.setItem(CLAVE_WEB, txt); } catch (e) { /* solo en memoria */ } return; }
     try { localStorage.setItem(CLAVE, txt); } catch (e) { /* el archivo es la copia principal */ }
     if (!enArchivo) return;
     colaGuardar = colaGuardar.then(async () => {
@@ -157,6 +165,7 @@
       try {
         let txt;
         if (M.esSimulado(url)) txt = M.icsSimulado(url, M.hoyLocal());
+        else if (MAQUETA) throw new Error('Desde el enlace web no se pueden leer los calendarios reales. Ábrelo con el programa del computador.');
         else {
           const r = await fetch('/calendario?url=' + encodeURIComponent(url), { headers: CAB });
           txt = await r.text();
@@ -196,8 +205,9 @@
       : hayHabs ? 'Sin actualizar todavía' : '';
     const haySim = !demo && S.habitaciones.some((h) => Object.values(h.enlaces || {}).some(M.esSimulado));
     $('#avisoSimulado').hidden = !haySim || MAQUETA;
-    $('#avisoMaqueta').hidden = !MAQUETA;
-    $('#btnDemo').hidden = MAQUETA;
+    $('#avisoMaqueta').hidden = !MAQUETA || EN_BLANCO;
+    $('#avisoWeb').hidden = !EN_BLANCO;
+    $('#btnDemo').hidden = MAQUETA && !EN_BLANCO;
     $('#btnRespaldo').hidden = MAQUETA;
     $('#lblRestaurar').hidden = MAQUETA;
     $('#btnSimular').hidden = !!demo || !S.habitaciones.length;
