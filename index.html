@@ -121,7 +121,13 @@
     </section>
 
     <section id="tab-config" class="tab" hidden>
-      <h2>Habitaciones y enlaces de calendario</h2>
+      <div class="casa-cabecera">
+        <img class="foto-casa" src="img/casa.jpg" alt="Entrada de Casa de Noah">
+        <div>
+          <h2>Habitaciones y enlaces de calendario</h2>
+          <p class="suave">Cada habitación tiene su foto y sus enlaces de Airbnb, Booking y Expedia.</p>
+        </div>
+      </div>
       <details class="ayuda">
         <summary>¿Dónde encuentro cada enlace?</summary>
         <ul>
@@ -139,10 +145,11 @@
         <button id="btnRespaldo">Descargar respaldo</button>
         <label class="boton" id="lblRestaurar">Restaurar respaldo <input type="file" id="fileRespaldo" accept="application/json" hidden></label>
       </div>
-      <p class="suave">Todo queda guardado en este computador, en la carpeta "datos" del programa. Descarga un respaldo de vez en cuando (por ejemplo a un pendrive o a tu correo).</p>
+      <p class="suave" id="textoGuardado"></p>
     </section>
 
     <section id="vacio" class="vacio" hidden>
+      <img class="foto-casa" src="img/casa.jpg" alt="Entrada de Casa de Noah">
       <h2>Bienvenida</h2>
       <p>Para empezar, agrega tus habitaciones y pega los enlaces de calendario de cada plataforma.</p>
       <div class="fila centro">

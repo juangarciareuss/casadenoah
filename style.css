@@ -120,11 +120,13 @@ label.boton { display: inline-block; border: 1px solid var(--linea); border-radi
 #grilla tr.err th.hab::after { content: " ⚠"; color: var(--choque); }
 
 /* ---------- Habitaciones y enlaces ---------- */
-.hab-card { border: 1px solid var(--linea); border-radius: 16px; padding: 14px; margin-bottom: 12px; display: grid; grid-template-columns: 200px 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+.hab-card { border: 1px solid var(--linea); border-radius: 16px; padding: 14px; margin-bottom: 12px; display: grid; grid-template-columns: 96px 170px 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+.hab-card img.mini, .hab-card .mini { grid-row: span 2; align-self: start; width: 96px; margin: 0; }
+.hab-card .sin-foto { aspect-ratio: 4 / 3; border-radius: 12px; background: var(--libre); }
 .hab-card label { display: flex; flex-direction: column; font-size: 13px; color: var(--suave); gap: 4px; min-width: 0; }
-.hab-card .estado { grid-column: 1 / -1; font-size: 12px; color: var(--suave); }
+.hab-card .estado { grid-column: 2 / -1; font-size: 12px; color: var(--suave); }
 .hab-card .estado .mal { color: var(--choque); }
-@media (max-width: 900px) { .hab-card { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .hab-card { grid-template-columns: 1fr; } .hab-card img.mini, .hab-card .mini { grid-row: auto; width: 100%; max-width: 240px; } .hab-card .estado { grid-column: auto; } }
 
 /* ---------- Tablas ---------- */
 .lista-wrap { overflow-x: auto; }
@@ -191,3 +193,8 @@ dialog.pregunta p { margin: 0 0 8px; font-size: 16px; }
   .nombre-hab img { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.vacio img.foto-casa { display: block; width: min(420px, 100%); aspect-ratio: 4 / 3; object-fit: cover; border-radius: 18px; margin: 0 auto 18px; }
+.casa-cabecera { display: flex; gap: 18px; align-items: center; margin-bottom: 8px; }
+.casa-cabecera img.foto-casa { width: 132px; max-width: 40%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; flex: none; }
+.casa-cabecera h2 { margin: 0 0 4px; }
+.casa-cabecera p { margin: 0; }

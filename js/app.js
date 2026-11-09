@@ -207,6 +207,7 @@
     $('#avisoSimulado').hidden = !haySim || MAQUETA;
     $('#avisoMaqueta').hidden = !MAQUETA || EN_BLANCO;
     $('#avisoWeb').hidden = !EN_BLANCO;
+    $('#textoGuardado').textContent = MAQUETA ? 'Todo queda guardado en este navegador. Si lo abres en otro equipo, se ve vacío.' : 'Todo queda guardado en este computador, en la carpeta "datos" del programa, con una copia diaria en "datos/respaldos".';
     $('#btnDemo').hidden = MAQUETA && !EN_BLANCO;
     $('#btnRespaldo').hidden = MAQUETA;
     $('#lblRestaurar').hidden = MAQUETA;
@@ -438,7 +439,8 @@
             : c ? `${M.FUENTES[f].nombre}: ${c.eventos.length} fechas leídas` : `${M.FUENTES[f].nombre}: pendiente`;
         }).filter(Boolean).join(' · ');
         return `<div class="hab-card" data-hab="${h.id}">
-          <label>${fotoDe(h) ? `<img class="mini" src="${fotoDe(h)}" alt="">` : ''}Nombre <input data-campo="nombre" value="${esc(h.nombre)}" maxlength="40"></label>
+          ${fotoDe(h) ? `<img class="mini" src="${fotoDe(h)}" alt="Foto de ${esc(h.nombre)}">` : '<span class="mini sin-foto"></span>'}
+          <label>Nombre <input data-campo="nombre" value="${esc(h.nombre)}" maxlength="40"></label>
           ${['airbnb', 'booking', 'expedia'].map((f) => `<label>Enlace ${M.FUENTES[f].nombre} <input data-campo="${f}" value="${esc((h.enlaces || {})[f] || '')}" placeholder="https://…"></label>`).join('')}
           <button class="peligro" data-borrar-hab="${h.id}">Quitar</button>
           <div class="estado">${est || 'Sin enlaces todavía.'}</div>
