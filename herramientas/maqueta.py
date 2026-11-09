@@ -18,6 +18,8 @@ def data_uri(nombre):
 
 html = (raiz / 'index.html').read_text(encoding='utf-8')
 cuerpo = re.search(r'<body>(.*?)<script src=', html, re.S).group(1)
+logo = 'data:image/png;base64,' + base64.b64encode((raiz / 'img' / 'logo.png').read_bytes()).decode()
+cuerpo = cuerpo.replace('src="img/logo.png"', f'src="{logo}"')
 css = (raiz / 'style.css').read_text(encoding='utf-8')
 engine = (raiz / 'js' / 'engine.js').read_text(encoding='utf-8')
 app = (raiz / 'js' / 'app.js').read_text(encoding='utf-8')
@@ -37,7 +39,7 @@ window.confirm = function () {{ return true; }};
 titulo = 'Casa de Noah' if en_blanco else 'Casa de Noah · Maqueta'
 out = f'''<title>{titulo}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
 <style>
 {css}
 </style>

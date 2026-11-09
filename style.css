@@ -1,19 +1,19 @@
 /* Casa de Noah · Pucón
    Diseño: papel casi blanco, verdes de bosque y musgo, azul del lago Villarrica, arena para lo libre.
-   Encabezado con el volcán y araucarias; la grilla de disponibilidad es la pieza central.
+   Identidad de su web: logo gris carbón, Roboto, blanco y gris claro. Paisaje con volcán y pinos; la grilla de disponibilidad es la pieza central.
    Siempre en fondo blanco, aunque el equipo esté en modo oscuro (pedido de la dueña). */
 [hidden] { display: none !important; }
 :root {
-  --bg: #fbfcfa; --card: #ffffff; --ink: #1c2b24; --suave: #61716a; --linea: #e3eae4; --linea-suave: #eef3ef;
-  --acento: #2d6a4f; --acento-ink: #ffffff; --acento-suave: #e9f3ed; --musgo: #8fae7d; --lago: #3e7c8f; --ceniza: #b9c7c3;
+  --bg: #f7f7f6; --card: #ffffff; --ink: #34343e; --suave: #6e6e78; --linea: #e4e4e6; --linea-suave: #efeff0;
+  --acento: #34343e; --acento-ink: #ffffff; --acento-suave: #ececee; --musgo: #9db38c; --lago: #5c7f8c; --ceniza: #c9cccc; --carbon: #34343e;
   --libre: #f4ebdc; --libre-borde: #eadcc3; --libre-ink: #8a6235; --choque: #c2392f;
   --ocupado: #3b7d5a; --ocupado-ink: #ffffff; --cerrado: #c5cbc4;
   --aviso-bg: #f6f1df; --aviso-ink: #4e4419; --alerta-bg: #fcefec; --alerta-ink: #84251d; --alerta-linea: #f2cfc9;
   --finde: #a0703a; --sombra: rgba(28, 43, 36, .07); --sombra-fuerte: rgba(28, 43, 36, .22);
   --nieve: #ffffff;
   color-scheme: light;
-  --fuente: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --marca: "Young Serif", Georgia, "Iowan Old Style", serif;
+  --fuente: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --marca: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.5 var(--fuente); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
@@ -28,7 +28,7 @@ button.peligro { color: var(--choque); }
 button:disabled { opacity: .5; cursor: wait; }
 input, select, textarea { border: 1px solid var(--linea); border-radius: 10px; padding: 7px 10px; background: var(--card); min-width: 0; }
 h1 { font: 400 28px/1.05 var(--marca); margin: 0; letter-spacing: -.2px; }
-h2 { font: 400 21px/1.2 var(--marca); margin: 4px 0 14px; text-wrap: balance; }
+h2 { font: 300 24px/1.2 var(--marca); margin: 4px 0 14px; text-wrap: balance; }
 h3 { font-size: 13px; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); }
 .suave { color: var(--suave); font-size: 13px; }
 
@@ -36,18 +36,18 @@ h3 { font-size: 13px; font-weight: 700; margin: 18px 0 8px; text-transform: uppe
 .top { position: relative; background: var(--card); padding-block: 18px 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow: hidden; }
 .top-fila { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; max-width: 1600px; margin: 0 auto; }
 .marca { display: flex; align-items: center; gap: 12px; margin-right: auto; }
-.emblema { width: 46px; height: 46px; flex: none; color: var(--acento); }
+.logo { height: 88px; width: auto; flex: none; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .marca-texto { display: flex; flex-direction: column; gap: 2px; }
-.marca-lugar { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--lago); }
+.marca-lugar { font-size: 17px; font-weight: 400; color: var(--suave); letter-spacing: .02em; }
 #actualizado { font-size: 12px; }
 .paisaje { display: block; width: 100%; height: 64px; margin-top: 6px; }
 .paisaje .cerro-lejano { fill: var(--ceniza); opacity: .55; }
-.paisaje .volcan { fill: var(--ceniza); }
+.paisaje .volcan { fill: #a9adb0; }
 .paisaje .nieve { fill: var(--nieve); }
 .paisaje .humo { fill: none; stroke: var(--ceniza); stroke-width: 2; stroke-linecap: round; opacity: .8; }
 .paisaje .lomas { fill: var(--musgo); opacity: .45; }
-.paisaje .bosque { fill: var(--acento); }
-.paisaje .araucaria { stroke: var(--acento); fill: none; stroke-width: 2.4; stroke-linecap: round; }
+.paisaje .pino { fill: var(--carbon); }
 .paisaje .lago { fill: var(--lago); opacity: .25; }
 
 /* Pestañas: barra fija con subrayado verde */
@@ -134,7 +134,7 @@ table.lista td { border-bottom: 1px solid var(--linea-suave); padding: 9px 8px; 
 table.lista tr:hover td { background: var(--linea-suave); }
 table.lista .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; color: #fff; font-size: 12px; font-weight: 600; }
-.libre-ok { color: var(--acento); font-weight: 600; }
+.libre-ok { color: var(--ocupado); font-weight: 600; }
 .vacio { text-align: center; background: var(--card); border-radius: 22px; padding: 44px 16px; box-shadow: 0 1px 2px var(--sombra), 0 12px 32px var(--sombra); }
 
 /* ---------- Ventanas ---------- */
@@ -148,7 +148,7 @@ dialog h2 { margin-top: 12px; }
 .fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
 .ficha { display: flex; flex-direction: column; gap: 8px; padding: 0 0 12px; overflow: hidden; text-align: left; border-radius: 16px; }
 .ficha img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
-.ficha span { padding: 0 12px; font-family: var(--marca); font-size: 17px; }
+.ficha span { padding: 0 12px; font-size: 17px; font-weight: 500; }
 img.mini { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; margin-bottom: 4px; }
 img.foto-grande { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 16px; }
 .tramos { padding-left: 18px; display: grid; gap: 8px; }
@@ -179,7 +179,7 @@ dialog.pregunta p { margin: 0 0 8px; font-size: 16px; }
 
 @media (max-width: 600px) {
   h1 { font-size: 24px; }
-  .emblema { width: 38px; height: 38px; }
+  .logo { height: 58px; }
   .top-fila { align-items: flex-start; }
   #btnActualizar { width: 100%; }
   .paisaje { height: 44px; }
